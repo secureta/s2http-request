@@ -1,0 +1,667 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Simple Request Dispatcher Request Definition",
+  "description": "Schema for WAF testing request definitions used by Simple Request Dispatcher",
+  "type": "object",
+  "properties": {
+    "headers": {
+      "description": "HTTP headers",
+      "oneOf": [
+        {
+          "additionalProperties": true,
+          "description": "Headers as key-value object",
+          "type": "object"
+        },
+        {
+          "description": "Headers as array of key-value pairs",
+          "items": {
+            "properties": {
+              "key": {
+                "description": "Header name",
+                "type": "string"
+              },
+              "value": {
+                "description": "Header value",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/functionCall"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "key",
+              "value"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      ]
+    },
+    "method": {
+      "default": "GET",
+      "description": "HTTP method",
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH",
+        "HEAD",
+        "OPTIONS"
+      ],
+      "type": "string"
+    },
+    "params": {
+      "description": "Request body parameters (for POST/PUT requests)",
+      "oneOf": [
+        {
+          "additionalProperties": true,
+          "description": "Parameters as key-value object",
+          "type": "object"
+        },
+        {
+          "description": "Parameters as array of key-value pairs",
+          "items": {
+            "properties": {
+              "key": {
+                "description": "Parameter key",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/functionCall"
+                  }
+                ]
+              },
+              "value": {
+                "description": "Parameter value",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/definitions/functionCall"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "key",
+              "value"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      ]
+    },
+    "path": {
+      "default": "/",
+      "description": "Request path",
+      "type": "string"
+    },
+    "query": {
+      "description": "Query parameters",
+      "oneOf": [
+        {
+          "additionalProperties": true,
+          "description": "Query parameters as key-value object",
+          "type": "object"
+        },
+        {
+          "description": "Query parameters as array of key-value pairs",
+          "items": {
+            "properties": {
+              "key": {
+                "description": "Parameter key",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/definitions/functionCall"
+                  }
+                ]
+              },
+              "value": {
+                "description": "Parameter value",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/definitions/functionCall"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "key",
+              "value"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      ]
+    },
+    "variables": {
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          },
+          {
+            "$ref": "#/definitions/functionCall"
+          }
+        ]
+      },
+      "description": "Variables used in the request",
+      "type": "object"
+    }
+  },
+  "required": [
+    "method",
+    "path"
+  ],
+  "definitions": {
+    "builtinFunctions": {
+      "description": "Available built-in functions",
+      "properties": {
+        "base64_decode": {
+          "description": "Base64エンコードされた文字列をデコードします",
+          "properties": {
+            "!base64_decode": {
+              "description": "!base64_decode \u003cencoded_string\u003e - Base64エンコードされた文字列をデコードします",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "base64_encode": {
+          "description": "文字列をBase64エンコーディングします",
+          "properties": {
+            "!base64_encode": {
+              "description": "!base64_encode \u003cstring\u003e - 文字列をBase64エンコーディングします",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "case_variation": {
+          "description": "文字列の大文字小文字をランダムに変換します（WAF回避用）",
+          "properties": {
+            "!case_variation": {
+              "description": "!case_variation \u003cstring\u003e - 文字列の大文字小文字をランダムに変換します（WAF回避用）",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "concat": {
+          "description": "複数の値を文字列として連結します",
+          "properties": {
+            "!concat": {
+              "description": "!concat [value1, value2, ...] - 複数の値を文字列として連結します",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "date": {
+          "description": "現在の日付を取得します（デフォルト: YYYY-MM-DD）",
+          "properties": {
+            "!date": {
+              "description": "!date [format] - 現在の日付を取得します（デフォルト: YYYY-MM-DD）",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "double_encode": {
+          "description": "文字列を二重URLエンコーディングします（WAF回避用）",
+          "properties": {
+            "!double_encode": {
+              "description": "!double_encode \u003cstring\u003e - 文字列を二重URLエンコーディングします（WAF回避用）",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "html_decode": {
+          "description": "HTMLエンコードされた文字列をデコードします",
+          "properties": {
+            "!html_decode": {
+              "description": "!html_decode \u003cencoded_string\u003e - HTMLエンコードされた文字列をデコードします",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "html_encode": {
+          "description": "文字列をHTMLエンコーディングします",
+          "properties": {
+            "!html_encode": {
+              "description": "!html_encode \u003cstring\u003e - 文字列をHTMLエンコーディングします",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "join": {
+          "description": "指定した区切り文字で複数の値を結合します",
+          "properties": {
+            "!join": {
+              "description": "!join [separator, value1, value2, ...] - 指定した区切り文字で複数の値を結合します",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "random": {
+          "description": "0からmax-1までのランダムな整数を生成します",
+          "properties": {
+            "!random": {
+              "description": "!random \u003cmax\u003e - 0からmax-1までのランダムな整数を生成します",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "random_string": {
+          "description": "指定した長さのランダムな文字列を生成します（オプションで文字セットを指定可能）",
+          "properties": {
+            "!random_string": {
+              "description": "!random_string \u003clength\u003e [charset] - 指定した長さのランダムな文字列を生成します（オプションで文字セットを指定可能）",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "time": {
+          "description": "現在の時刻を取得します（デフォルト: HH:MM:SS）",
+          "properties": {
+            "!time": {
+              "description": "!time [format] - 現在の時刻を取得します（デフォルト: HH:MM:SS）",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "timestamp": {
+          "description": "現在のUnixタイムスタンプ（秒）を取得します",
+          "properties": {
+            "!timestamp": {
+              "description": "!timestamp - 現在のUnixタイムスタンプ（秒）を取得します",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "unicode_encode": {
+          "description": "ASCII以外の文字や制御文字をUnicodeエスケープします（WAF回避用）",
+          "properties": {
+            "!unicode_encode": {
+              "description": "!unicode_encode \u003cstring\u003e - ASCII以外の文字や制御文字をUnicodeエスケープします（WAF回避用）",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "url_decode": {
+          "description": "URLエンコードされた文字列をデコードします",
+          "properties": {
+            "!url_decode": {
+              "description": "!url_decode \u003cencoded_string\u003e - URLエンコードされた文字列をデコードします",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "url_encode": {
+          "description": "文字列をURLエンコーディングします",
+          "properties": {
+            "!url_encode": {
+              "description": "!url_encode \u003cstring\u003e - 文字列をURLエンコーディングします",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "uuid": {
+          "description": "ランダムなUUID（v4）を生成します",
+          "properties": {
+            "!uuid": {
+              "description": "!uuid - ランダムなUUID（v4）を生成します",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "var": {
+          "description": "変数の値を参照します",
+          "properties": {
+            "!var": {
+              "description": "!var \u003cvariable_name\u003e - 変数の値を参照します",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "object"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "examples": {
+      "description": "Function usage examples",
+      "properties": {
+        "concat": {
+          "!concat": [
+            "Hello",
+            " ",
+            "World"
+          ]
+        },
+        "random": {
+          "!random": 100
+        },
+        "timestamp": {
+          "!timestamp": null
+        },
+        "url_encode": {
+          "!url_encode": "hello world"
+        },
+        "var": {
+          "!var": "variable_name"
+        }
+      },
+      "type": "object"
+    },
+    "functionCall": {
+      "additionalProperties": false,
+      "description": "Built-in function call",
+      "maxProperties": 1,
+      "minProperties": 1,
+      "patternProperties": {
+        "^!\\w+$": {
+          "description": "Function call with arguments",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    }
+  }
+}

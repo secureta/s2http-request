@@ -1,0 +1,137 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+# Built binaries
+dispatcher
+schema
+simple-request-dispatcher
+bin/
+dist/
+build/
+
+# Test output files
+test_output*.json
+results*.json
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Coverage files
+coverage.out
+coverage.html
+profile.out
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Configuration files with sensitive data
+config.local.*
+secrets.*
+
+# Build artifacts
+dist/
+build/
+
+# Documentation build
+docs/_build/
+
+# Backup files
+*.bak
+*.backup
+
+# Local test files
+test_requests/
+local_tests/
+
+# Performance test results
+*.prof
+*.pprof
+
+# Certificates and keys (if any)
+*.pem
+*.key
+*.crt
+*.p12
+
+# Local development scripts
+dev-*
+local-*
+
+# Output directories
+output/
+results/
+
+# Cache directories
+.cache/
+
+# Node.js (if using for documentation or tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if using for scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Kubernetes
+*.kubeconfig
+
+# Terraform (if used for infrastructure)
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Local configuration overrides
+local.yaml
+local.json
+dev.yaml
+dev.json

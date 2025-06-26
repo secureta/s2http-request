@@ -1,0 +1,43 @@
+method: POST
+path: /api/search
+query:
+  - key: q
+    value:
+      !dict_random:
+        - !dict_load: dictionaries/xss_payloads.json
+  - key: category
+    value: all
+  - key: debug
+    value: "1"
+headers:
+  - key: Content-Type
+    value: application/json
+  - key: X-Test-Type
+    value: WAF-Bypass
+  - key: Authorization
+    value:
+      !concat:
+        - "Bearer "
+        - !uuid
+params:
+  - key: search
+    value:
+      !dict_random:
+        - !concat_arrays:
+          - !dict_load: dictionaries/injection_payloads.yaml
+          - !dict_load: dictionaries/xss_payloads.json
+  - key: limit
+    value:
+      !random: 100
+variables:
+  xss_payloads:
+    !dict_load: dictionaries/xss_payloads.json
+  sql_payloads:
+    !dict_load: dictionaries/injection_payloads.yaml
+  combined_payloads:
+    !concat_arrays:
+      - !var: xss_payloads
+      - !var: sql_payloads
+  random_payload:
+    !dict_random:
+      - !var: combined_payloads

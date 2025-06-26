@@ -1,0 +1,39 @@
+{
+  "method": "GET",
+  "path": "/",
+  "query": {
+    "q": "hello",
+    "r": "",
+    "s": null,
+    "t": {
+      "!var": "malicious_key"
+    }
+  },
+  "headers": {
+    "Content-Type": "application/x-www-form-urlencoded",
+    "User-Agent": {
+      "!concat": [
+        "Simple-Request-Dispatcher/1.0 (",
+        {"!var": "os"},
+        ")"
+      ]
+    }
+  },
+  "params": {
+    "id": "1",
+    "name": {
+      "!url_encode": "John Doe"
+    }
+  },
+  "variables": {
+    "v": "1",
+    "k": "2",
+    "os": "Linux",
+    "malicious_key": {
+      "!concat": [
+        {"!var": "v"},
+        {"!var": "k"}
+      ]
+    }
+  }
+}

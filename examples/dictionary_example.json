@@ -1,0 +1,37 @@
+{
+  "method": "POST",
+  "path": "/post",
+  "query": {
+    "test": "1"
+  },
+  "headers": {
+    "Content-Type": "application/x-www-form-urlencoded",
+    "User-Agent": "Mozilla/5.0 (Security Test)"
+  },
+  "params": {
+    "username": "admin",
+    "password": {
+      "!dict_random": {
+        "!dict_load": "dictionaries/injection_payloads.yaml"
+      }
+    },
+    "email": {
+      "!dict_get": [
+        {
+          "!dict_load": "dictionaries/xss_payloads.json"
+        },
+        5
+      ]
+    }
+  },
+  "variables": {
+    "payload_file": "dictionaries/common_payloads.txt",
+    "selected_payload": {
+      "!dict_random": {
+        "!dict_load": {
+          "!var": "payload_file"
+        }
+      }
+    }
+  }
+}
