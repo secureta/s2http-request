@@ -5,6 +5,12 @@
 - Regardless of the language of the instruction, your thinking process must be in English. The final response should be in the language of the original instruction.
 - When implementing new features or fixing bugs, you must follow the Test-Driven Development (TDD) methodology as advocated by Takuto Wada. This means writing a failing test before writing the implementation code.
 
+## Task Execution
+
+All project tasks, such as building, testing, and linting, should be executed using the `go tool mage` command. The available tasks are defined in `magefile.go`.
+
+When adding or modifying tasks in `magefile.go`, ensure that the `README.md` is updated to reflect these changes, keeping the documentation synchronized with the build process.
+
 ## TDD Methodology (based on Takuto Wada's teachings)
 
 Takuto Wada emphasizes a pragmatic and sustainable approach to TDD. The core of his philosophy is the "Red-Green-Refactor" cycle, but with a strong focus on the "why" behind each step.

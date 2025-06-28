@@ -73,7 +73,7 @@ func TestParseJSON(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			parser := NewParser()
 			
-			result, err := parser.Parse([]byte(tt.jsonData), ".json")
+			result, err := parser.Parse([]byte(tt.jsonData), ".json", "")
 			
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
@@ -134,7 +134,7 @@ variables:
 		t.Run(tt.name, func(t *testing.T) {
 			parser := NewParser()
 			
-			result, err := parser.Parse([]byte(tt.yamlData), ".yaml")
+			result, err := parser.Parse([]byte(tt.yamlData), ".yaml", "")
 			
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
