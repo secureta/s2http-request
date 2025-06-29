@@ -44,7 +44,7 @@ By following these principles, you can ensure that the codebase remains clean, m
 ## Project Directory Structure
 
 - **`/` (root)**: Contains project configuration files (`.gitignore`, `go.mod`, `go.sum`), build scripts (`magefile.go`), documentation (`README.md`), and schemas (`request-schema.json`).
-- **`examples/`**: Contains various example configuration files (JSON, YAML) demonstrating how to use the project.
+- **`examples/`**: Contains various example configuration files (JSON, YAML) demonstrating how to use the `s2http-request`.
     - `dictionaries/`: Stores dictionary files used for payloads, fuzzing, etc. (e.g., `common_payloads.txt`, `injection_payloads.yaml`).
 - **`internal/`**: Holds internal Go packages that are not intended for external use.
     - `config/`: Configuration-related code.

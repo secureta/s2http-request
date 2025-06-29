@@ -1,4 +1,4 @@
-module github.com/user/simple-request-dispatcher
+module github.com/secureta/s2http-request
 
 go 1.24
 

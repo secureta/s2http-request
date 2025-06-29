@@ -1,24 +1,24 @@
-# Simple Request Dispatcher
+# s2http-request
 
-A lightweight HTTP request dispatching tool.
+A **Simple and Structured HTTP Request** dispatching tool.
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Features](#features)
-- [Request Definition Format](#request-definition-format)
-- [Built-in Functions](#built-in-functions)
-- [Dictionary Feature for Fuzzing](#dictionary-feature-for-fuzzing)
-- [Payload Management using Dictionary Files](#payload-management-using-dictionary-files)
-- [Usage](#usage)
-- [Output Format](#output-format)
-- [Directory Structure](#directory-structure)
-- [License](#license)
-- [Contributing](#contributing)
+- [Features]
+- [Request Definition Format]
+- [Built-in Functions]
+- [Dictionary Feature for Fuzzing]
+- [Payload Management using Dictionary Files]
+- [Usage]
+- [Output Format]
+- [Directory Structure]
+- [License]
+- [Contributing]
 
 ## Overview
 
-Simple Request Dispatcher is a versatile and lightweight HTTP request dispatching tool designed for various testing and automation scenarios. It allows users to define complex HTTP requests using pure JSON/YAML, eliminating the need for domain-specific languages (DSLs) or templating engines. This approach ensures clarity, simplicity, and ease of integration with existing workflows.
+s2http-request is a versatile and lightweight HTTP request dispatching tool designed for various testing and automation scenarios. It allows users to define complex HTTP requests using pure JSON/YAML, eliminating the need for domain-specific languages (DSLs) or templating engines. This approach ensures clarity, simplicity, and ease of integration with existing workflows.
 
 ## Features
 
@@ -279,18 +279,22 @@ admin' --
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/simple-request-dispatcher.git
-cd simple-request-dispatcher
+git clone https://github.com/your-username/s2http-request.git
+cd s2http-request
 
-# Install dependencies
-go tool mage deps
+# Install dependencies and build the binary
+go tool mage install
+```
 
-# Build
-go tool mage build
+The `install` command builds the `s2req` binary and installs it into your `$GOPATH/bin` or `$GOBIN` directory.
 
-# Or, download the binary from releases
-curl -L https://github.com/your-username/simple-request-dispatcher/releases/latest/download/dispatcher-linux-amd64 -o dispatcher
-chmod +x dispatcher
+Alternatively, you can download a pre-built binary from the [Releases](https://github.com/your-username/s2http-request/releases) page.
+
+```bash
+# Example for Linux
+curl -L https://github.com/your-username/s2http-request/releases/latest/download/s2req-linux-amd64 -o s2req
+chmod +x s2req
+# You can move it to a directory in your PATH, e.g., /usr/local/bin
 ```
 
 ### JSON Schema Generation
@@ -315,35 +319,35 @@ go tool mage schema
 
 ```bash
 # Execute request from a JSON file
-./dispatcher request.json
+s2req request.json
 
 # Execute request from a YAML file
-./dispatcher request.yaml
+s2req request.yaml
 
 # Execute multiple request files
-./dispatcher requests/*.json
+s2req requests/*.json
 
 # Verbose output mode
-./dispatcher --verbose request.json
+s2req --verbose request.json
 
 # Save results to a file
-./dispatcher --output results.json request.json
+s2req --output results.json request.json
 ```
 
 ### Configuration Options
 
 ```bash
 # Specify target host
-./dispatcher --host https://example.com request.json
+s2req --host https://example.com request.json
 
 # Set timeout
-./dispatcher --timeout 30 request.json
+s2req --timeout 30 request.json
 
 # Set retry count
-./dispatcher --retry 3 request.json
+s2req --retry 3 request.json
 
 # Use proxy
-./dispatcher --proxy http://proxy.example.com:8080 request.json
+s2req --proxy http://proxy.example.com:8080 request.json
 ```
 
 ## Output Format
@@ -389,7 +393,7 @@ go tool mage schema
 ## Directory Structure
 
 ```
-simple-request-dispatcher/
+s2http-request/
 ├── examples/
 │   └── dictionaries/
 ├── internal/
