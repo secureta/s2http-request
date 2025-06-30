@@ -1,5 +1,7 @@
 # LLM Instructions
 
+After reading this, state that you will follow the instructions in LLM.MD before proceeding with the task.
+
 ## Core Principles
 
 - Regardless of the language of the instruction, your thinking process must be in English. The final response should be in the language of the original instruction.
