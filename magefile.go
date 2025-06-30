@@ -64,11 +64,11 @@ func Build() error {
 		return err
 	}
 	fmt.Println("Building s2req...")
-	if err := runCommand("go", "build", ldflags, "-o", dispatcherBinary, "./cmd/dispatcher"); err != nil {
+	if err := runCommand("go", "build", ldflags, "-o", dispatcherBinary, "./cmd/s2req"); err != nil {
 		return err
 	}
 	fmt.Println("Building schema generator...")
-	return runCommand("go", "build", ldflags, "-o", schemaBinary, "./cmd/schema")
+	return runCommand("go", "build", ldflags, "-o", schemaBinary, "./cmd/s2req-schema")
 }
 
 func Deps() error {
@@ -109,39 +109,11 @@ func Clean() error {
 }
 
 func Install() error {
-	if err := Build(); err != nil {
+	fmt.Println("Installing binaries using go install...")
+	if err := runCommand("go", "install", "./cmd/s2req"); err != nil {
 		return err
 	}
-	fmt.Println("Installing binaries...")
-
-	gobin := os.Getenv("GOBIN")
-	if gobin == "" {
-		gopath := os.Getenv("GOPATH")
-		if gopath == "" {
-			return fmt.Errorf("GOPATH or GOBIN environment variable is not set")
-		}
-		gobin = filepath.Join(gopath, "bin")
-	}
-
-	if err := os.MkdirAll(gobin, 0755); err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", gobin, err)
-	}
-
-	// Install main binary
-	dispatcherDest := filepath.Join(gobin, "s2req")
-	fmt.Printf("Installing s2req to %s\n", dispatcherDest)
-	if err := runCommand("cp", dispatcherBinary, dispatcherDest); err != nil {
-		return err
-	}
-
-	// Install schema binary
-	schemaDest := filepath.Join(gobin, "s2req-schema")
-	fmt.Printf("Installing s2req-schema to %s\n", schemaDest)
-	if err := runCommand("cp", schemaBinary, schemaDest); err != nil {
-		return err
-	}
-
-	return nil
+	return runCommand("go", "install", "./cmd/s2req-schema")
 }
 
 func Schema() error {
@@ -210,10 +182,10 @@ func BuildAll() error {
 		{"windows", "amd64", "schema-windows-amd64.exe"},
 	}
 	for _, p := range platforms {
-		if err := runCommand("go", "build", ldflags, "-o", filepath.Join(binaryDir, p.Out), "-GOOS="+p.OS, "-GOARCH="+p.Arch, "./cmd/dispatcher"); err != nil {
+		if err := runCommand("go", "build", ldflags, "-o", filepath.Join(binaryDir, p.Out), "-GOOS="+p.OS, "-GOARCH="+p.Arch, "./cmd/s2req"); err != nil {
 			return err
 		}
-		if err := runCommand("go", "build", ldflags, "-o", filepath.Join(binaryDir, strings.Replace(p.Out, "s2req", "s2req-schema", 1)), "-GOOS="+p.OS, "-GOARCH="+p.Arch, "./cmd/schema"); err != nil {
+		if err := runCommand("go", "build", ldflags, "-o", filepath.Join(binaryDir, strings.Replace(p.Out, "s2req", "s2req-schema", 1)), "-GOOS="+p.OS, "-GOARCH="+p.Arch, "./cmd/s2req-schema"); err != nil {
 			return err
 		}
 	}

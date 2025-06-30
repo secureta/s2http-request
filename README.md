@@ -278,12 +278,15 @@ admin' --
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/s2http-request.git
-cd s2http-request
+# Install the latest version
+go install github.com/secureta/s2http-request/cmd/s2req@latest
+go install github.com/secureta/s2http-request/cmd/s2req-schema@latest
 
-# Install dependencies and build the binary
-go tool mage install
+# Or, clone the repository and install from the local directory
+git clone https://github.com/secureta/s2http-request.git
+cd s2http-request
+go install ./cmd/s2req
+go install ./cmd/s2req-schema
 ```
 
 The `install` command builds the `s2req` binary and installs it into your `$GOPATH/bin` or `$GOBIN` directory.
