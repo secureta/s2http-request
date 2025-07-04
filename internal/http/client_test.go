@@ -4,10 +4,11 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/user/simple-request-dispatcher/internal/config"
+	"github.com/secureta/s2http-request/internal/config"
 )
 
 func TestNewClient(t *testing.T) {
@@ -384,5 +385,82 @@ func TestSendRequestDefaultContentType(t *testing.T) {
 	
 	if contentType != expectedContentType {
 		t.Errorf("Expected default Content-Type %s, got %s", expectedContentType, contentType)
+	}
+}
+
+func TestSendRequestWithFragment(t *testing.T) {
+	var receivedURL string
+	var receivedRawURL string
+	
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedURL = r.URL.String()
+		receivedRawURL = r.RequestURI
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	}))
+	defer server.Close()
+
+	client, err := NewClient(30*time.Second, "")
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	tests := []struct {
+		name         string
+		url          string
+		expectedPath string
+		expectFragment bool
+	}{
+		{
+			name:         "URL with fragment",
+			url:          server.URL + "/test#fragment",
+			expectedPath: "/test#fragment",
+			expectFragment: true,
+		},
+		{
+			name:         "URL with fragment and query",
+			url:          server.URL + "/api?param=value#section",
+			expectedPath: "/api?param=value#section",
+			expectFragment: true,
+		},
+		{
+			name:         "URL without fragment",
+			url:          server.URL + "/normal",
+			expectedPath: "/normal",
+			expectFragment: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			processedRequest := &config.ProcessedRequest{
+				Method:  "GET",
+				URL:     tt.url,
+				Headers: map[string]string{},
+				Body:    "",
+			}
+
+			ctx := context.Background()
+			_, err := client.SendRequest(ctx, processedRequest)
+
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			t.Logf("Received URL: %s", receivedURL)
+			t.Logf("Received Raw URL: %s", receivedRawURL)
+
+			if tt.expectFragment {
+				// フラグメントがサーバーに送信されているかを確認
+				if !strings.Contains(receivedRawURL, "#") {
+					t.Errorf("Expected fragment in request URI, but got: %s", receivedRawURL)
+				}
+			} else {
+				// フラグメントがないことを確認
+				if strings.Contains(receivedRawURL, "#") {
+					t.Errorf("Unexpected fragment in request URI: %s", receivedRawURL)
+				}
+			}
+		})
 	}
 }

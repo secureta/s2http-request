@@ -1,15 +1,17 @@
 package http
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
-	"github.com/user/simple-request-dispatcher/internal/config"
+	"github.com/secureta/s2http-request/internal/config"
 )
 
 // Client はHTTPクライアント
@@ -19,10 +21,113 @@ type Client struct {
 	proxy      string
 }
 
+// fragmentTransport はフラグメントを含むリクエストを送信するためのカスタムトランスポート
+type fragmentTransport struct {
+	base http.RoundTripper
+}
+
+func (t *fragmentTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// フラグメントが含まれているかチェック
+	if !strings.Contains(req.URL.String(), "#") {
+		// フラグメントがない場合は通常の処理
+		if t.base != nil {
+			return t.base.RoundTrip(req)
+		}
+		return http.DefaultTransport.RoundTrip(req)
+	}
+
+	// フラグメントがある場合は手動でリクエストを構築
+	return t.sendRequestWithFragment(req)
+}
+
+func (t *fragmentTransport) sendRequestWithFragment(req *http.Request) (*http.Response, error) {
+	// URLを解析
+	parsedURL := req.URL
+	host := parsedURL.Host
+	if parsedURL.Port() == "" {
+		if parsedURL.Scheme == "https" {
+			host += ":443"
+		} else {
+			host += ":80"
+		}
+	}
+
+	// TCP接続を確立
+	conn, err := net.DialTimeout("tcp", host, 30*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("failed to dial: %w", err)
+	}
+	defer conn.Close()
+
+	// リクエストラインを構築（フラグメントを含む）
+	requestURI := parsedURL.Path
+	if parsedURL.RawQuery != "" {
+		requestURI += "?" + parsedURL.RawQuery
+	}
+	if parsedURL.Fragment != "" {
+		requestURI += "#" + parsedURL.Fragment
+	}
+	if requestURI == "" {
+		requestURI = "/"
+	}
+
+	// HTTPリクエストを手動で構築
+	requestLine := fmt.Sprintf("%s %s HTTP/1.1\r\n", req.Method, requestURI)
+	
+	// ヘッダーを構築
+	headers := ""
+	headers += fmt.Sprintf("Host: %s\r\n", parsedURL.Host)
+	
+	for key, values := range req.Header {
+		for _, value := range values {
+			headers += fmt.Sprintf("%s: %s\r\n", key, value)
+		}
+	}
+	
+	// Connection: close を追加（シンプルにするため）
+	headers += "Connection: close\r\n"
+	
+	// リクエストボディの処理
+	var body string
+	if req.Body != nil {
+		bodyBytes, err := io.ReadAll(req.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read request body: %w", err)
+		}
+		body = string(bodyBytes)
+		if body != "" {
+			headers += fmt.Sprintf("Content-Length: %d\r\n", len(body))
+		}
+	}
+	
+	// 完全なHTTPリクエストを構築
+	fullRequest := requestLine + headers + "\r\n" + body
+	
+	// リクエストを送信
+	_, err = conn.Write([]byte(fullRequest))
+	if err != nil {
+		return nil, fmt.Errorf("failed to write request: %w", err)
+	}
+
+	// レスポンスを読み取り
+	reader := bufio.NewReader(conn)
+	resp, err := http.ReadResponse(reader, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	return resp, nil
+}
+
 // NewClient は新しいHTTPクライアントを作成
 func NewClient(timeout time.Duration, proxy string) (*Client, error) {
+	transport := &fragmentTransport{
+		base: http.DefaultTransport,
+	}
+
 	client := &http.Client{
-		Timeout: timeout,
+		Timeout:   timeout,
+		Transport: transport,
 	}
 
 	// プロキシ設定
@@ -32,10 +137,10 @@ func NewClient(timeout time.Duration, proxy string) (*Client, error) {
 			return nil, fmt.Errorf("invalid proxy URL: %w", err)
 		}
 		
-		transport := &http.Transport{
+		baseTransport := &http.Transport{
 			Proxy: http.ProxyURL(proxyURL),
 		}
-		client.Transport = transport
+		transport.base = baseTransport
 	}
 
 	return &Client{
