@@ -1,0 +1,17 @@
+{
+  "method": "GET",
+  "path": "/test#fragment",
+  "query": {
+    "param": "value",
+    "test": "data"
+  },
+  "headers": {
+    "Content-Type": "application/json",
+    "User-Agent": "Fragment-Test/1.0",
+    "X-Test-Type": "fragment-penetration"
+  },
+  "variables": {
+    "fragment_id": "section1",
+    "test_payload": "alert('xss')"
+  }
+}

@@ -70,6 +70,11 @@ func (r *Registry) registerBuiltinFunctions() {
 	
 	// Fuzzing関数
 	r.functions["dict_fuzz"] = &DictionaryFuzzFunction{}
+	
+	// ボディ変換関数
+	r.functions["form"] = &FormFunction{}
+	r.functions["json"] = &JSONFunction{}
+	r.functions["multipart"] = &MultipartFunction{}
 }
 
 // Get は関数を取得

@@ -1,0 +1,23 @@
+{
+  "method": "POST",
+  "path": "/api/data",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "!json": [
+      {
+        "user": {
+          "!var": "username"
+        },
+        "timestamp": {
+          "!timestamp": []
+        }
+      },
+      2
+    ]
+  },
+  "variables": {
+    "username": "testuser"
+  }
+}

@@ -1,0 +1,54 @@
+method: GET
+path: "/search#results"
+query:
+  q: "test query"
+  filter: "all"
+  sort: "date"
+headers:
+  Content-Type: "application/json"
+  User-Agent: "Fragment-YAML-Test/1.0"
+  Accept: "text/html,application/xhtml+xml"
+variables:
+  search_term: "penetration test"
+  fragment_section: "results"
+---
+method: POST
+path: "/form#submit"
+query:
+  action: "process"
+  token: 
+    !var: csrf_token
+headers:
+  Content-Type: "multipart/form-data"
+  X-Requested-With: "XMLHttpRequest"
+body:
+  name: "Test User"
+  email: "test@example.com"
+  message: 
+    !concat:
+      - "Hello, this is a test message with fragment: "
+      - !var: fragment_data
+variables:
+  csrf_token: "abc123def456"
+  fragment_data: "#important_section"
+---
+method: PUT
+path: "/api/users/1#profile"
+query:
+  update: "profile"
+  section: 
+    !var: target_section
+headers:
+  Content-Type: "application/json"
+  Authorization: 
+    !concat:
+      - "Bearer "
+      - !var: auth_token
+body:
+  profile:
+    bio: "Updated bio with fragment reference"
+    settings:
+      theme: "dark#custom"
+variables:
+  auth_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+  target_section: "profile_settings"

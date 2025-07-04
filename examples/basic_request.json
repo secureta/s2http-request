@@ -19,10 +19,12 @@
       ]
     }
   },
-  "params": {
-    "id": "1",
-    "name": {
-      "!url_encode": "John Doe"
+  "body": {
+    "!form": {
+      "id": "1",
+      "name": {
+        "!url_encode": "John Doe"
+      }
     }
   },
   "variables": {

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"github.com/user/simple-request-dispatcher/internal/config"
-	"github.com/user/simple-request-dispatcher/pkg/functions"
+	"github.com/secureta/s2http-request/internal/config"
+	"github.com/secureta/s2http-request/pkg/functions"
 	"gopkg.in/yaml.v3"
 )
 

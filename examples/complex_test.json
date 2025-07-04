@@ -7,21 +7,23 @@
       "!uuid": []
     }
   },
-  "params": {
-    "username": {
-      "!var": "test_user"
-    },
-    "timestamp": {
-      "!timestamp": []
-    },
-    "encoded_payload": {
-      "!base64_encode": {
-        "!concat": [
-          "payload:",
-          {"!var": "test_user"},
-          ":",
-          {"!random": [1000]}
-        ]
+  "body": {
+    "!form": {
+      "username": {
+        "!var": "test_user"
+      },
+      "timestamp": {
+        "!timestamp": []
+      },
+      "encoded_payload": {
+        "!base64_encode": {
+          "!concat": [
+            "payload:",
+            {"!var": "test_user"},
+            ":",
+            {"!random": [1000]}
+          ]
+        }
       }
     }
   },

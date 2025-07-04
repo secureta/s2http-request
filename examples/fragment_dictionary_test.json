@@ -1,0 +1,18 @@
+# Fragment Dictionary Example with External Payload File
+{
+  "method": "GET", 
+  "path": "/test",
+  "query": {
+    "param": "value"
+  },
+  "headers": {
+    "User-Agent": "Fragment-Dictionary-Test/1.0",
+    "X-Test-Type": "fragment-dictionary"
+  },
+  "variables": {
+    "base_path": "/api/endpoint"
+  },
+  "dictionary": {
+    "fragment_file_test": "dictionaries/fragment_payloads.txt"
+  }
+}
