@@ -21,6 +21,11 @@ var (
 	version = "dev"
 )
 
+// getDefaultUserAgent returns the default User-Agent string
+func getDefaultUserAgent() string {
+	return fmt.Sprintf("s2req/%s (https://github.com/secureta/s2http-request)", version)
+}
+
 func main() {
 	var (
 		host      = flag.String("host", "http://localhost", "Target host URL")
@@ -113,11 +118,15 @@ func processFile(p *parser.Parser, client *http.Client, cliConfig *config.CLICon
 
 	// 各処理済みリクエストを送信
 	for _, processedRequest := range processedRequests {
-		// User-Agentの上書き処理
-		// JSONやYAMLファイルでUser-Agentが指定されていない場合のみ、コマンドライン引数を適用
-		if userAgent != "" {
-			if _, exists := processedRequest.Headers["User-Agent"]; !exists {
+		// User-Agentの設定処理
+		if _, exists := processedRequest.Headers["User-Agent"]; !exists {
+			// JSONやYAMLファイルでUser-Agentが指定されていない場合
+			if userAgent != "" {
+				// コマンドライン引数が指定されている場合はそれを使用
 				processedRequest.Headers["User-Agent"] = userAgent
+			} else {
+				// コマンドライン引数も指定されていない場合はデフォルト値を使用
+				processedRequest.Headers["User-Agent"] = getDefaultUserAgent()
 			}
 		}
 
