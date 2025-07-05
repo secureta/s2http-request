@@ -6,9 +6,11 @@
   },
   "body": {
     "!json": {
-      "name": "John Doe",
-      "email": "john@example.com",
-      "age": 30
+      "value": {
+        "name": "John Doe",
+        "email": "john@example.com",
+        "age": 30
+      }
     }
   }
 }

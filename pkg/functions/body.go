@@ -53,21 +53,33 @@ func (f *JSONFunction) Name() string {
 }
 
 func (f *JSONFunction) Signature() string {
-	return "!json <value> [space]"
+	return "!json {value: <value>, space?: <space>}"
 }
 
 func (f *JSONFunction) Description() string {
-	return "値をJSON文字列に変換します。spaceパラメータでインデントを指定できます"
+	return "値をJSON文字列に変換します。{value: <value>, space?: <space>} の形式で引数を指定します"
 }
 
 func (f *JSONFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
-	if len(args) < 1 || len(args) > 2 {
-		return nil, fmt.Errorf("json function expects 1 or 2 arguments, got %d", len(args))
+	if len(args) != 1 {
+		return nil, fmt.Errorf("json function expects 1 argument, got %d", len(args))
 	}
 
-	value := args[0]
-	
-	if len(args) == 1 {
+	// 引数はマップである必要がある
+	argMap, ok := args[0].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("json function expects map[string]interface{} argument")
+	}
+
+	// valueフィールドが必須
+	value, hasValue := argMap["value"]
+	if !hasValue {
+		return nil, fmt.Errorf("json function requires 'value' field")
+	}
+
+	// spaceフィールドはオプション
+	space, hasSpace := argMap["space"]
+	if !hasSpace {
 		// スペースなしでJSON化
 		jsonBytes, err := json.Marshal(value)
 		if err != nil {
@@ -78,12 +90,12 @@ func (f *JSONFunction) Execute(ctx context.Context, args []interface{}) (interfa
 
 	// スペースありでJSON化
 	var indent string
-	switch space := args[1].(type) {
+	switch spaceVal := space.(type) {
 	case string:
-		indent = space
+		indent = spaceVal
 	case float64:
 		// 数値の場合はスペースの数として扱う
-		indent = strings.Repeat(" ", int(space))
+		indent = strings.Repeat(" ", int(spaceVal))
 	default:
 		return nil, fmt.Errorf("json function expects string or number for space parameter")
 	}

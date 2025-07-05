@@ -24,7 +24,7 @@
 
 ## !json 関数
 
-`!json`関数は、任意の値をJSON文字列に変換します。オプションでインデントを指定できます。
+`!json`関数は、任意の値をJSON文字列に変換します。`{value: <value>, space?: <space>}` の形式で引数を指定します。
 
 ### 基本的な使用法
 ```json
@@ -36,9 +36,11 @@
   },
   "body": {
     "!json": {
-      "name": "John Doe",
-      "email": "john@example.com",
-      "age": 30
+      "value": {
+        "name": "John Doe",
+        "email": "john@example.com",
+        "age": 30
+      }
     }
   }
 }
@@ -48,10 +50,13 @@
 ```json
 {
   "body": {
-    "!json": [
-      {"name": "John", "age": 30},
-      2
-    ]
+    "!json": {
+      "value": {
+        "name": "John",
+        "age": 30
+      },
+      "space": 2
+    }
   }
 }
 ```

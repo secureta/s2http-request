@@ -5,8 +5,8 @@
     "Content-Type": "application/json"
   },
   "body": {
-    "!json": [
-      {
+    "!json": {
+      "value": {
         "user": {
           "!var": "username"
         },
@@ -14,8 +14,8 @@
           "!timestamp": []
         }
       },
-      2
-    ]
+      "space": 2
+    }
   },
   "variables": {
     "username": "testuser"
