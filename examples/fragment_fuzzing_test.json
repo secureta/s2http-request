@@ -2,9 +2,7 @@
   "method": "GET",
   "path": "/vulnerable",
   "query": {},
-  "headers": {
-    "User-Agent": "Fragment-Fuzzing-Test/1.0"
-  },
+  "headers": {},
   "variables": {
     "base_path": "/test",
     "fragment_payloads": [

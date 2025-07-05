@@ -10,14 +10,7 @@
     }
   },
   "headers": {
-    "Content-Type": "application/x-www-form-urlencoded",
-    "User-Agent": {
-      "!concat": [
-        "Simple-Request-Dispatcher/1.0 (",
-        {"!var": "os"},
-        ")"
-      ]
-    }
+    "Content-Type": "application/x-www-form-urlencoded"
   },
   "body": {
     "!form": {

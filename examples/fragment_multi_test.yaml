@@ -6,7 +6,6 @@ query:
   sort: "date"
 headers:
   Content-Type: "application/json"
-  User-Agent: "Fragment-YAML-Test/1.0"
   Accept: "text/html,application/xhtml+xml"
 variables:
   search_term: "penetration test"

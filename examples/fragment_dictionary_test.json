@@ -6,7 +6,6 @@
     "param": "value"
   },
   "headers": {
-    "User-Agent": "Fragment-Dictionary-Test/1.0",
     "X-Test-Type": "fragment-dictionary"
   },
   "variables": {
