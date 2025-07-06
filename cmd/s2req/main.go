@@ -21,6 +21,48 @@ var (
 	version = "dev"
 )
 
+// parseRequestIDOption はRequest IDオプションをパースする
+func parseRequestIDOption(option string) (*config.RequestIDConfig, error) {
+	parts := strings.SplitN(option, "=", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid format, expected 'type=value'")
+	}
+
+	switch parts[0] {
+	case "path":
+		switch parts[1] {
+		case "head":
+			return &config.RequestIDConfig{
+				Location: config.RequestIDLocationPathHead,
+			}, nil
+		case "tail":
+			return &config.RequestIDConfig{
+				Location: config.RequestIDLocationPathTail,
+			}, nil
+		default:
+			return nil, fmt.Errorf("invalid path value, expected 'head' or 'tail'")
+		}
+	case "query":
+		if parts[1] == "" {
+			return nil, fmt.Errorf("query key cannot be empty")
+		}
+		return &config.RequestIDConfig{
+			Location: config.RequestIDLocationQuery,
+			Key:      parts[1],
+		}, nil
+	case "header":
+		if parts[1] == "" {
+			return nil, fmt.Errorf("header key cannot be empty")
+		}
+		return &config.RequestIDConfig{
+			Location: config.RequestIDLocationHeader,
+			Key:      parts[1],
+		}, nil
+	default:
+		return nil, fmt.Errorf("invalid type, expected 'path', 'query', or 'header'")
+	}
+}
+
 // getDefaultUserAgent returns the default User-Agent string
 func getDefaultUserAgent() string {
 	return fmt.Sprintf("s2req/%s (https://github.com/secureta/s2http-request)", version)
@@ -36,6 +78,7 @@ func main() {
 		output    = flag.String("output", "", "Output file path")
 		format    = flag.String("format", "json", "Output format (json, csv, table)")
 		userAgent = flag.String("user-agent", "", "Override User-Agent header")
+		requestID = flag.String("request-id", "", "Enable Request ID (path=head|tail, query=<key>, header=<key>)")
 		showVersion = flag.Bool("version", false, "Show version")
 	)
 
@@ -53,16 +96,27 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Request IDの設定をパース
+	var requestIDConfig *config.RequestIDConfig
+	if *requestID != "" {
+		var err error
+		requestIDConfig, err = parseRequestIDOption(*requestID)
+		if err != nil {
+			log.Fatalf("Invalid request-id option: %v", err)
+		}
+	}
+
 	// CLI設定の作成
 	cliConfig := &config.CLIConfig{
-		Host:    *host,
-		Timeout: *timeout,
-		Retry:   *retry,
-		Proxy:   *proxy,
-		Verbose: *verbose,
-		Output:  *output,
-		Format:  config.OutputFormat(*format),
-		Files:   files,
+		Host:      *host,
+		Timeout:   *timeout,
+		Retry:     *retry,
+		Proxy:     *proxy,
+		Verbose:   *verbose,
+		Output:    *output,
+		Format:    config.OutputFormat(*format),
+		Files:     files,
+		RequestID: requestIDConfig,
 	}
 
 	// HTTPクライアントの作成
@@ -109,7 +163,7 @@ func processFile(p *parser.Parser, client *http.Client, cliConfig *config.CLICon
 	}
 
 	// リクエストの処理（辞書展開を含む）
-	processedRequests, err := p.ProcessRequests(context.Background(), requestConfig, cliConfig.Host)
+	processedRequests, err := p.ProcessRequestsWithRequestID(context.Background(), requestConfig, cliConfig.Host, cliConfig.RequestID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to process requests: %w", err)
 	}
@@ -151,8 +205,9 @@ func processFile(p *parser.Parser, client *http.Client, cliConfig *config.CLICon
 			Request:  *processedRequest,
 			Response: *response,
 			Metadata: map[string]interface{}{
-				"file":      filePath,
-				"timestamp": time.Now().Format(time.RFC3339),
+				"file":       filePath,
+				"timestamp":  time.Now().Format(time.RFC3339),
+				"request_id": processedRequest.RequestID,
 			},
 		}
 
@@ -161,6 +216,9 @@ func processFile(p *parser.Parser, client *http.Client, cliConfig *config.CLICon
 		// Verbose出力
 		if cliConfig.Verbose {
 			fmt.Printf("Request: %s %s\n", processedRequest.Method, processedRequest.URL)
+			if processedRequest.RequestID != "" {
+				fmt.Printf("Request ID: %s\n", processedRequest.RequestID)
+			}
 			fmt.Printf("Response: %d\n", response.StatusCode)
 		}
 	}
@@ -197,15 +255,16 @@ func outputResults(results []*config.Result, cliConfig *config.CLIConfig) error 
 
 func formatAsCSV(results []*config.Result) ([]byte, error) {
 	var lines []string
-	lines = append(lines, "Method,URL,StatusCode,ResponseTime,BodyLength")
+	lines = append(lines, "Method,URL,StatusCode,ResponseTime,BodyLength,RequestID")
 
 	for _, result := range results {
-		line := fmt.Sprintf("%s,%s,%d,%.3f,%d",
+		line := fmt.Sprintf("%s,%s,%d,%.3f,%d,%s",
 			result.Request.Method,
 			result.Request.URL,
 			result.Response.StatusCode,
 			result.Response.Time.Total,
-			len(result.Response.Body))
+			len(result.Response.Body),
+			result.Request.RequestID)
 		lines = append(lines, line)
 	}
 
@@ -214,16 +273,17 @@ func formatAsCSV(results []*config.Result) ([]byte, error) {
 
 func formatAsTable(results []*config.Result) ([]byte, error) {
 	var lines []string
-	lines = append(lines, "METHOD\tURL\tSTATUS\tTIME\tSIZE")
-	lines = append(lines, strings.Repeat("-", 80))
+	lines = append(lines, "METHOD\tURL\tSTATUS\tTIME\tSIZE\tREQUEST_ID")
+	lines = append(lines, strings.Repeat("-", 100))
 
 	for _, result := range results {
-		line := fmt.Sprintf("%s\t%s\t%d\t%.3fs\t%d",
+		line := fmt.Sprintf("%s\t%s\t%d\t%.3fs\t%d\t%s",
 			result.Request.Method,
 			result.Request.URL,
 			result.Response.StatusCode,
 			result.Response.Time.Total,
-			len(result.Response.Body))
+			len(result.Response.Body),
+			result.Request.RequestID)
 		lines = append(lines, line)
 	}
 

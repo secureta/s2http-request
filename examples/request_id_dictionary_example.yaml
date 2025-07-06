@@ -1,0 +1,13 @@
+meta:
+  request-id:
+    header: "X-Request-ID"
+method: POST
+path: /api/test
+query:
+  param1: value1
+headers:
+  Content-Type: application/json
+body:
+  message: "test request"
+dictionary:
+  test_id: [1, 2, 3]

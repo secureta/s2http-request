@@ -2,6 +2,27 @@ package config
 
 import "time"
 
+// RequestIDLocation はRequest IDの配置場所を表す列挙型
+type RequestIDLocation string
+
+const (
+	RequestIDLocationPathHead RequestIDLocation = "path_head"
+	RequestIDLocationPathTail RequestIDLocation = "path_tail"
+	RequestIDLocationQuery    RequestIDLocation = "query"
+	RequestIDLocationHeader   RequestIDLocation = "header"
+)
+
+// RequestIDConfig はRequest IDの設定を表す構造体
+type RequestIDConfig struct {
+	Location RequestIDLocation `json:"location" yaml:"location"`
+	Key      string            `json:"key,omitempty" yaml:"key,omitempty"` // query/headerの場合のキー名
+}
+
+// MetaConfig はリクエストのメタデータを表す構造体
+type MetaConfig struct {
+	RequestID *RequestIDConfig `json:"request-id,omitempty" yaml:"request-id,omitempty"`
+}
+
 // RequestConfig はリクエスト設定を表す構造体
 type RequestConfig struct {
 	Method     string                   `json:"method" yaml:"method"`
@@ -12,6 +33,7 @@ type RequestConfig struct {
 	Body       interface{}              `json:"body,omitempty" yaml:"body,omitempty"`
 	Variables  map[string]interface{}   `json:"variables,omitempty" yaml:"variables,omitempty"`
 	Dictionary map[string][]interface{} `json:"dictionary,omitempty" yaml:"dictionary,omitempty"`
+	Meta       *MetaConfig              `json:"meta,omitempty" yaml:"meta,omitempty"`
 	FilePath   string                   `json:"-" yaml:"-"`
 }
 
@@ -23,10 +45,11 @@ type KeyValue struct {
 
 // ProcessedRequest は処理済みリクエストを表す構造体
 type ProcessedRequest struct {
-	Method  string
-	URL     string
-	Headers map[string]string
-	Body    string
+	Method    string
+	URL       string
+	Headers   map[string]string
+	Body      string
+	RequestID string // Request IDを追加
 }
 
 // ResponseTiming はレスポンス時間の詳細を表す構造体
@@ -66,12 +89,13 @@ const (
 
 // CLIConfig はCLIオプションを表す構造体
 type CLIConfig struct {
-	Host     string
-	Timeout  time.Duration
-	Retry    int
-	Proxy    string
-	Verbose  bool
-	Output   string
-	Format   OutputFormat
-	Files    []string
+	Host      string
+	Timeout   time.Duration
+	Retry     int
+	Proxy     string
+	Verbose   bool
+	Output    string
+	Format    OutputFormat
+	Files     []string
+	RequestID *RequestIDConfig // Request ID設定を追加
 }

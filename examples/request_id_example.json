@@ -1,0 +1,13 @@
+{
+  "meta": {
+    "request-id": {"query": "req_id"}
+  },
+  "method": "GET",
+  "path": "/test",
+  "query": {
+    "q": "hello"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  }
+}

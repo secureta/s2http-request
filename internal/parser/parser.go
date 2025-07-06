@@ -8,6 +8,7 @@ import (
 	"strings"
 	"github.com/secureta/s2http-request/internal/config"
 	"github.com/secureta/s2http-request/pkg/functions"
+	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 )
 
@@ -195,6 +196,178 @@ func (p *Parser) mapToQueryString(m map[string]interface{}) string {
 		}
 	}
 	return values.Encode()
+}
+
+// ProcessRequestsWithRequestID はRequest ID機能付きでリクエストを処理する
+func (p *Parser) ProcessRequestsWithRequestID(ctx context.Context, requestConfig *config.RequestConfig, baseURL string, cliRequestIDConfig *config.RequestIDConfig) ([]*config.ProcessedRequest, error) {
+	// Request IDの設定を決定（リクエスト定義ファイル > CLI設定）
+	var requestIDConfig *config.RequestIDConfig
+	if requestConfig.Meta != nil && requestConfig.Meta.RequestID != nil {
+		requestIDConfig = requestConfig.Meta.RequestID
+	} else if cliRequestIDConfig != nil {
+		requestIDConfig = cliRequestIDConfig
+	}
+
+	dict := requestConfig.Dictionary
+	if dict == nil || len(dict) == 0 {
+		// 変数をコンテキストに設定（変数を事前に処理）
+		ctxWithVars := ctx
+		if requestConfig.Variables != nil {
+			processedVars, err := p.processVariables(ctx, requestConfig.Variables)
+			if err != nil {
+				return nil, fmt.Errorf("failed to process variables: %w", err)
+			}
+			ctxWithVars = context.WithValue(ctx, "variables", processedVars)
+		}
+		pr, err := p.ProcessRequestWithRequestID(ctxWithVars, requestConfig, baseURL, requestIDConfig)
+		if err != nil {
+			return nil, err
+		}
+		return []*config.ProcessedRequest{pr}, nil
+	}
+
+	// 1つ以上のdictionaryがある場合（zip方式: 最初の配列長で回す）
+	arrLen := 0
+	for _, v := range dict {
+		arrLen = len(v)
+		break
+	}
+
+	var results []*config.ProcessedRequest
+	for i := 0; i < arrLen; i++ {
+		// 各ループで context に dictionary の i番目をセット
+		dictVars := make(map[string]interface{})
+		for k, v := range dict {
+			if i < len(v) {
+				dictVars[k] = v[i]
+			} else {
+				dictVars[k] = nil
+			}
+		}
+		// variablesもマージ
+		mergedVars := map[string]interface{}{}
+		for k, v := range requestConfig.Variables {
+			mergedVars[k] = v
+		}
+		for k, v := range dictVars {
+			mergedVars[k] = v
+		}
+		
+		// 変数を事前に処理
+		processedVars, err := p.processVariables(ctx, mergedVars)
+		if err != nil {
+			return nil, fmt.Errorf("failed to process variables: %w", err)
+		}
+		ctxWithVars := context.WithValue(ctx, "variables", processedVars)
+		pr, err := p.ProcessRequestWithRequestID(ctxWithVars, requestConfig, baseURL, requestIDConfig)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, pr)
+	}
+	return results, nil
+}
+
+// ProcessRequestWithRequestID はRequest ID機能付きでリクエストを処理する
+func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig *config.RequestConfig, baseURL string, requestIDConfig *config.RequestIDConfig) (*config.ProcessedRequest, error) {
+	// Request IDを生成
+	var requestID string
+	if requestIDConfig != nil {
+		requestID = uuid.New().String()
+	}
+
+	// URLの構築
+	fullURL := baseURL + requestConfig.Path
+	
+	// Request IDをパスに追加
+	if requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationPathHead {
+		fullURL = baseURL + "/" + requestID + requestConfig.Path
+	} else if requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationPathTail {
+		fullURL = baseURL + requestConfig.Path + "/" + requestID
+	}
+	
+	// コンテキストにリクエストファイルのパスを設定
+	ctx = context.WithValue(ctx, "requestFilePath", requestConfig.FilePath)
+
+	// クエリパラメータの処理
+	queryParams := make(map[string]interface{})
+	if requestConfig.Query != nil {
+		if queryMap, ok := requestConfig.Query.(map[string]interface{}); ok {
+			for k, v := range queryMap {
+				queryParams[k] = v
+			}
+		}
+	}
+	
+	// Request IDをクエリパラメータに追加
+	if requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationQuery {
+		queryParams[requestIDConfig.Key] = requestID
+	}
+	
+	if len(queryParams) > 0 {
+		processedQuery, err := p.processMap(ctx, queryParams)
+		if err != nil {
+			return nil, fmt.Errorf("failed to process query: %w", err)
+		}
+		if len(processedQuery) > 0 {
+			queryString := p.mapToQueryString(processedQuery)
+			if queryString != "" {
+				fullURL += "?" + queryString
+			}
+		}
+	}
+	
+	// ヘッダーの処理
+	headers := make(map[string]string)
+	headerParams := make(map[string]interface{})
+	if requestConfig.Headers != nil {
+		if headersMap, ok := requestConfig.Headers.(map[string]interface{}); ok {
+			for k, v := range headersMap {
+				headerParams[k] = v
+			}
+		}
+	}
+	
+	// Request IDをヘッダーに追加
+	if requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationHeader {
+		headerParams[requestIDConfig.Key] = requestID
+	}
+	
+	if len(headerParams) > 0 {
+		processedHeaders, err := p.processMap(ctx, headerParams)
+		if err != nil {
+			return nil, fmt.Errorf("failed to process headers: %w", err)
+		}
+		for k, v := range processedHeaders {
+			headers[k] = fmt.Sprintf("%v", v)
+		}
+	}
+	
+	// ボディの処理
+	var body string
+	if requestConfig.Params != nil {
+		if paramsMap, ok := requestConfig.Params.(map[string]interface{}); ok {
+			processedParams, err := p.processMap(ctx, paramsMap)
+			if err != nil {
+				return nil, fmt.Errorf("failed to process params: %w", err)
+			}
+			body = p.mapToQueryString(processedParams)
+		}
+	} else if requestConfig.Body != nil {
+		processedBody, err := p.processValue(ctx, requestConfig.Body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to process body: %w", err)
+		}
+		body = fmt.Sprintf("%v", processedBody)
+	}
+	
+	return &config.ProcessedRequest{
+		Method:    requestConfig.Method,
+		URL:       fullURL,
+		Headers:   headers,
+		Body:      body,
+		RequestID: requestID,
+	}, nil
 }
 
 // ProcessRequests はdictionaryの要素数ぶんリクエストを展開して返す
