@@ -1,0 +1,9 @@
+method: POST
+path: /api/events
+headers:
+  Content-Type: application/json
+body:
+  !json:
+    value:
+      event: "user_login"
+      timestamp: !timestamp: []

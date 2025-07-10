@@ -1,0 +1,10 @@
+method: POST
+path: /api/users
+headers:
+  Content-Type: application/json
+body:
+  !json:
+    value:
+      name: John Doe
+      email: john@example.com
+      age: 30

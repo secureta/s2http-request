@@ -1,0 +1,9 @@
+meta:
+  request-id:
+    query: "request_id"
+method: GET
+path: /api/resource
+query:
+  filter: "active"
+headers:
+  Accept: "application/json"

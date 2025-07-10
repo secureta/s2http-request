@@ -1,0 +1,8 @@
+method: GET
+path: "/search#results"
+query:
+  q: "test query"
+  filter: "all"
+  sort: "date"
+headers:
+  Accept: "text/html,application/xhtml+xml"
