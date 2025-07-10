@@ -20,7 +20,7 @@ func (f *ConcatArraysFunction) Description() string {
 	return "複数の配列を結合して1つの配列にします"
 }
 
-func (f *ConcatArraysFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *ConcatArraysFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) == 0 {
 		return []string{}, nil
 	}

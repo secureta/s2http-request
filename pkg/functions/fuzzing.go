@@ -20,7 +20,7 @@ func (f *DictionaryFuzzFunction) Description() string {
 	return "辞書の各要素をテンプレートのプレースホルダに置換してリクエストのバリエーションを生成します"
 }
 
-func (f *DictionaryFuzzFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *DictionaryFuzzFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) < 2 || len(args) > 3 {
 		return nil, fmt.Errorf("dict_fuzz requires 2 or 3 arguments, got %d", len(args))
 	}

@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -110,7 +109,6 @@ func processStdin(p *parser.Parser, client *http.Client, cliConfig *config.CLICo
 
 			// Send the request
 			ctx, cancel := context.WithTimeout(context.Background(), cliConfig.Timeout)
-			defer cancel()
 
 			var response *config.ResponseData
 			if cliConfig.Retry > 0 {
@@ -118,6 +116,9 @@ func processStdin(p *parser.Parser, client *http.Client, cliConfig *config.CLICo
 			} else {
 				response, err = client.SendRequest(ctx, processedRequest)
 			}
+
+			// Always cancel the context when done with this request
+			cancel()
 
 			if err != nil {
 				log.Printf("Failed to send request: %v", err)
@@ -283,7 +284,7 @@ func main() {
 
 func processFile(p *parser.Parser, client *http.Client, cliConfig *config.CLIConfig, filePath string, userAgent string) ([]*config.Result, error) {
 	// ファイルの読み込み
-	data, err := ioutil.ReadFile(filePath)
+	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -323,7 +324,6 @@ func processFile(p *parser.Parser, client *http.Client, cliConfig *config.CLICon
 
 			// リクエストの送信
 			ctx, cancel := context.WithTimeout(context.Background(), cliConfig.Timeout)
-			defer cancel()
 
 			var response *config.ResponseData
 			if cliConfig.Retry > 0 {
@@ -331,6 +331,9 @@ func processFile(p *parser.Parser, client *http.Client, cliConfig *config.CLICon
 			} else {
 				response, err = client.SendRequest(ctx, processedRequest)
 			}
+
+			// Always cancel the context when done with this request
+			cancel()
 
 			if err != nil {
 				log.Printf("Failed to send request: %v", err)
@@ -384,7 +387,7 @@ func outputResults(results []*config.Result, cliConfig *config.CLIConfig) error 
 	}
 
 	if cliConfig.Output != "" {
-		return ioutil.WriteFile(cliConfig.Output, output, 0644)
+		return os.WriteFile(cliConfig.Output, output, 0644)
 	}
 
 	fmt.Print(string(output))

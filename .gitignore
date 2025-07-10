@@ -67,8 +67,6 @@ config.local.*
 secrets.*
 
 # Build artifacts
-dist/
-build/
 
 # Documentation build
 docs/_build/
@@ -112,7 +110,6 @@ yarn-error.log*
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 .Python
 env/
 venv/

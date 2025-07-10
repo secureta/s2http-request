@@ -70,24 +70,33 @@ func TestSendRequest(t *testing.T) {
 		if r.Method == "GET" && r.URL.Path == "/test" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"message": "success"}`))
+			_, err := w.Write([]byte(`{"message": "success"}`))
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 		} else if r.Method == "POST" && r.URL.Path == "/api" {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusCreated)
-			w.Write([]byte(`{"status": "created"}`))
+			_, err := w.Write([]byte(`{"status": "created"}`))
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 		} else {
 			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Not Found"))
+			_, err := w.Write([]byte("Not Found"))
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 		}
 	}))
 	defer server.Close()
 
 	tests := []struct {
-		name            string
+		name             string
 		processedRequest *config.ProcessedRequest
-		expectedStatus  int
-		expectedBody    string
-		wantError       bool
+		expectedStatus   int
+		expectedBody     string
+		wantError        bool
 	}{
 		{
 			name: "successful GET request",
@@ -176,7 +185,10 @@ func TestSendRequestWithTimeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(2 * time.Second) // 2秒待機
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("slow response"))
+		_, err := w.Write([]byte("slow response"))
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -202,33 +214,39 @@ func TestSendRequestWithTimeout(t *testing.T) {
 
 func TestSendRequestWithRetry(t *testing.T) {
 	callCount := 0
-	
+
 	// 最初の2回は失敗、3回目は成功するサーバー
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		if callCount < 3 {
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("Server Error"))
+			_, err := w.Write([]byte("Server Error"))
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 		} else {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("Success"))
+			_, err := w.Write([]byte("Success"))
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 		}
 	}))
 	defer server.Close()
 
 	tests := []struct {
-		name         string
-		maxRetries   int
+		name          string
+		maxRetries    int
 		expectSuccess bool
 	}{
 		{
-			name:         "success with retries",
-			maxRetries:   3,
+			name:          "success with retries",
+			maxRetries:    3,
 			expectSuccess: true,
 		},
 		{
-			name:         "failure with insufficient retries",
-			maxRetries:   1,
+			name:          "failure with insufficient retries",
+			maxRetries:    1,
 			expectSuccess: false,
 		},
 	}
@@ -236,7 +254,7 @@ func TestSendRequestWithRetry(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			callCount = 0 // リセット
-			
+
 			client, err := NewClient(30*time.Second, "")
 			if err != nil {
 				t.Fatalf("Failed to create client: %v", err)
@@ -276,7 +294,10 @@ func TestSendRequestWithContext(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(5 * time.Second)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("response"))
+		_, err := w.Write([]byte("response"))
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -305,11 +326,14 @@ func TestSendRequestWithContext(t *testing.T) {
 
 func TestSendRequestHeaders(t *testing.T) {
 	var receivedHeaders http.Header
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, err := w.Write([]byte("OK"))
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -322,8 +346,8 @@ func TestSendRequestHeaders(t *testing.T) {
 		Method: "POST",
 		URL:    server.URL,
 		Headers: map[string]string{
-			"Content-Type":   "application/json",
-			"Authorization":  "Bearer token123",
+			"Content-Type":    "application/json",
+			"Authorization":   "Bearer token123",
 			"X-Custom-Header": "custom-value",
 		},
 		Body: `{"test": "data"}`,
@@ -352,11 +376,14 @@ func TestSendRequestHeaders(t *testing.T) {
 
 func TestSendRequestDefaultContentType(t *testing.T) {
 	var receivedHeaders http.Header
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedHeaders = r.Header.Clone()
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, err := w.Write([]byte("OK"))
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -382,7 +409,7 @@ func TestSendRequestDefaultContentType(t *testing.T) {
 	// デフォルトのContent-Typeが設定されているか確認
 	contentType := receivedHeaders.Get("Content-Type")
 	expectedContentType := "application/x-www-form-urlencoded"
-	
+
 	if contentType != expectedContentType {
 		t.Errorf("Expected default Content-Type %s, got %s", expectedContentType, contentType)
 	}
@@ -391,12 +418,15 @@ func TestSendRequestDefaultContentType(t *testing.T) {
 func TestSendRequestWithFragment(t *testing.T) {
 	var receivedURL string
 	var receivedRawURL string
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		receivedURL = r.URL.String()
 		receivedRawURL = r.RequestURI
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, err := w.Write([]byte("OK"))
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -406,27 +436,27 @@ func TestSendRequestWithFragment(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		url          string
-		expectedPath string
+		name           string
+		url            string
+		expectedPath   string
 		expectFragment bool
 	}{
 		{
-			name:         "URL with fragment",
-			url:          server.URL + "/test#fragment",
-			expectedPath: "/test#fragment",
+			name:           "URL with fragment",
+			url:            server.URL + "/test#fragment",
+			expectedPath:   "/test#fragment",
 			expectFragment: true,
 		},
 		{
-			name:         "URL with fragment and query",
-			url:          server.URL + "/api?param=value#section",
-			expectedPath: "/api?param=value#section",
+			name:           "URL with fragment and query",
+			url:            server.URL + "/api?param=value#section",
+			expectedPath:   "/api?param=value#section",
 			expectFragment: true,
 		},
 		{
-			name:         "URL without fragment",
-			url:          server.URL + "/normal",
-			expectedPath: "/normal",
+			name:           "URL without fragment",
+			url:            server.URL + "/normal",
+			expectedPath:   "/normal",
 			expectFragment: false,
 		},
 	}

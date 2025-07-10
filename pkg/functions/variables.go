@@ -57,16 +57,16 @@ func (f *ConcatFunction) Description() string {
 	return "複数の値を文字列として連結します"
 }
 
-func (f *ConcatFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *ConcatFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) == 0 {
 		return "", nil
 	}
-	
+
 	var result strings.Builder
 	for _, arg := range args {
 		result.WriteString(fmt.Sprintf("%v", arg))
 	}
-	
+
 	return result.String(), nil
 }
 
@@ -85,20 +85,20 @@ func (f *JoinFunction) Description() string {
 	return "指定した区切り文字で複数の値を結合します"
 }
 
-func (f *JoinFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *JoinFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) < 2 {
 		return nil, fmt.Errorf("join function expects at least 2 arguments, got %d", len(args))
 	}
-	
+
 	separator, ok := args[0].(string)
 	if !ok {
 		return nil, fmt.Errorf("join function expects string separator as first argument")
 	}
-	
+
 	var parts []string
 	for _, arg := range args[1:] {
 		parts = append(parts, fmt.Sprintf("%v", arg))
 	}
-	
+
 	return strings.Join(parts, separator), nil
 }

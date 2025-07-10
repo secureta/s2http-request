@@ -25,7 +25,7 @@ func (f *FormFunction) Description() string {
 	return "マップをapplication/x-www-form-urlencodedフォーマットに変換します"
 }
 
-func (f *FormFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *FormFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("form function expects 1 argument, got %d", len(args))
 	}
@@ -60,7 +60,7 @@ func (f *JSONFunction) Description() string {
 	return "値をJSON文字列に変換します。{value: <value>, space?: <space>} の形式で引数を指定します"
 }
 
-func (f *JSONFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *JSONFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("json function expects 1 argument, got %d", len(args))
 	}
@@ -123,7 +123,7 @@ func (f *MultipartFunction) Description() string {
 	return "マップをmultipart/form-dataフォーマットに変換します。boundaryパラメータが必要です"
 }
 
-func (f *MultipartFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *MultipartFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("multipart function expects 2 arguments, got %d", len(args))
 	}
@@ -140,7 +140,7 @@ func (f *MultipartFunction) Execute(ctx context.Context, args []interface{}) (in
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
-	
+
 	// カスタムバウンダリを設定
 	if err := writer.SetBoundary(boundary); err != nil {
 		return nil, fmt.Errorf("multipart function failed to set boundary: %w", err)
@@ -152,7 +152,7 @@ func (f *MultipartFunction) Execute(ctx context.Context, args []interface{}) (in
 			if err != nil {
 				return nil, fmt.Errorf("multipart function failed to create field %s: %w", key, err)
 			}
-			
+
 			_, err = field.Write([]byte(fmt.Sprintf("%v", value)))
 			if err != nil {
 				return nil, fmt.Errorf("multipart function failed to write field %s: %w", key, err)

@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
-	"strings"
+	"github.com/google/uuid"
 	"github.com/secureta/s2http-request/internal/config"
 	"github.com/secureta/s2http-request/pkg/functions"
-	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
+	"net/url"
+	"strings"
 )
 
 // Parser はリクエスト設定を解析し処理するためのパーサー
@@ -548,7 +548,7 @@ func (p *Parser) processVariables(ctx context.Context, variables map[string]inte
 
 			// 変数値を処理
 			processedValue, err := p.processValue(tempCtx, varValue)
-		if err != nil {
+			if err != nil {
 				// この変数がまだ処理できない場合は次の反復で試す
 				continue
 			}

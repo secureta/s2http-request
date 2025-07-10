@@ -25,21 +25,21 @@ func (f *DoubleEncodeFunction) Description() string {
 	return "文字列を二重URLエンコーディングします（WAF回避用）"
 }
 
-func (f *DoubleEncodeFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *DoubleEncodeFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("double_encode function expects 1 argument, got %d", len(args))
 	}
-	
+
 	input, ok := args[0].(string)
 	if !ok {
 		return nil, fmt.Errorf("double_encode function expects string argument")
 	}
-	
+
 	// 一回目のエンコーディング
 	encoded := url.QueryEscape(input)
 	// 二回目のエンコーディング
 	doubleEncoded := url.QueryEscape(encoded)
-	
+
 	return doubleEncoded, nil
 }
 
@@ -58,16 +58,16 @@ func (f *UnicodeEncodeFunction) Description() string {
 	return "ASCII以外の文字や制御文字をUnicodeエスケープします（WAF回避用）"
 }
 
-func (f *UnicodeEncodeFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *UnicodeEncodeFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("unicode_encode function expects 1 argument, got %d", len(args))
 	}
-	
+
 	input, ok := args[0].(string)
 	if !ok {
 		return nil, fmt.Errorf("unicode_encode function expects string argument")
 	}
-	
+
 	var result strings.Builder
 	for _, r := range input {
 		if r > 127 || unicode.IsControl(r) {
@@ -77,7 +77,7 @@ func (f *UnicodeEncodeFunction) Execute(ctx context.Context, args []interface{})
 			result.WriteRune(r)
 		}
 	}
-	
+
 	return result.String(), nil
 }
 
@@ -96,19 +96,19 @@ func (f *CaseVariationFunction) Description() string {
 	return "文字列の大文字小文字をランダムに変換します（WAF回避用）"
 }
 
-func (f *CaseVariationFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *CaseVariationFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("case_variation function expects 1 argument, got %d", len(args))
 	}
-	
+
 	input, ok := args[0].(string)
 	if !ok {
 		return nil, fmt.Errorf("case_variation function expects string argument")
 	}
-	
+
 	// シードを現在時刻で初期化
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	
+
 	var result strings.Builder
 	for _, r := range input {
 		if unicode.IsLetter(r) {
@@ -126,6 +126,6 @@ func (f *CaseVariationFunction) Execute(ctx context.Context, args []interface{})
 			result.WriteRune(r)
 		}
 	}
-	
+
 	return result.String(), nil
 }

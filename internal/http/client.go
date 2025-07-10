@@ -40,7 +40,7 @@ func (t *fragmentTransport) RoundTrip(req *http.Request) (*http.Response, error)
 	return t.sendRequestWithFragment(req)
 }
 
-func (t *fragmentTransport) sendRequestWithFragment(req *http.Request) (*http.Response, error) {
+func (t *fragmentTransport) sendRequestWithFragment(req *http.Request) (resp *http.Response, err error) {
 	// URLを解析
 	parsedURL := req.URL
 	host := parsedURL.Host
@@ -57,7 +57,11 @@ func (t *fragmentTransport) sendRequestWithFragment(req *http.Request) (*http.Re
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial: %w", err)
 	}
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close connection: %w", closeErr)
+		}
+	}()
 
 	// リクエストラインを構築（フラグメントを含む）
 	requestURI := parsedURL.Path
@@ -73,20 +77,20 @@ func (t *fragmentTransport) sendRequestWithFragment(req *http.Request) (*http.Re
 
 	// HTTPリクエストを手動で構築
 	requestLine := fmt.Sprintf("%s %s HTTP/1.1\r\n", req.Method, requestURI)
-	
+
 	// ヘッダーを構築
 	headers := ""
 	headers += fmt.Sprintf("Host: %s\r\n", parsedURL.Host)
-	
+
 	for key, values := range req.Header {
 		for _, value := range values {
 			headers += fmt.Sprintf("%s: %s\r\n", key, value)
 		}
 	}
-	
+
 	// Connection: close を追加（シンプルにするため）
 	headers += "Connection: close\r\n"
-	
+
 	// リクエストボディの処理
 	var body string
 	if req.Body != nil {
@@ -99,10 +103,10 @@ func (t *fragmentTransport) sendRequestWithFragment(req *http.Request) (*http.Re
 			headers += fmt.Sprintf("Content-Length: %d\r\n", len(body))
 		}
 	}
-	
+
 	// 完全なHTTPリクエストを構築
 	fullRequest := requestLine + headers + "\r\n" + body
-	
+
 	// リクエストを送信
 	_, err = conn.Write([]byte(fullRequest))
 	if err != nil {
@@ -111,7 +115,7 @@ func (t *fragmentTransport) sendRequestWithFragment(req *http.Request) (*http.Re
 
 	// レスポンスを読み取り
 	reader := bufio.NewReader(conn)
-	resp, err := http.ReadResponse(reader, req)
+	resp, err = http.ReadResponse(reader, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
@@ -136,7 +140,7 @@ func NewClient(timeout time.Duration, proxy string) (*Client, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid proxy URL: %w", err)
 		}
-		
+
 		baseTransport := &http.Transport{
 			Proxy: http.ProxyURL(proxyURL),
 		}
@@ -151,7 +155,7 @@ func NewClient(timeout time.Duration, proxy string) (*Client, error) {
 }
 
 // SendRequest はHTTPリクエストを送信
-func (c *Client) SendRequest(ctx context.Context, processedRequest *config.ProcessedRequest) (*config.ResponseData, error) {
+func (c *Client) SendRequest(ctx context.Context, processedRequest *config.ProcessedRequest) (responseData *config.ResponseData, err error) {
 	// タイミング測定用
 	startTime := time.Now()
 	var dnsTime, connectTime, sslTime, sendTime, waitTime, receiveTime time.Duration
@@ -186,7 +190,11 @@ func (c *Client) SendRequest(ctx context.Context, processedRequest *config.Proce
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close response body: %w", closeErr)
+		}
+	}()
 
 	// レスポンス受信時刻
 	waitTime = time.Since(startTime) - sendTime
@@ -202,7 +210,7 @@ func (c *Client) SendRequest(ctx context.Context, processedRequest *config.Proce
 	totalTime := time.Since(startTime)
 
 	// レスポンスデータの構築
-	responseData := &config.ResponseData{
+	responseData = &config.ResponseData{
 		StatusCode: resp.StatusCode,
 		Headers:    resp.Header,
 		Body:       string(bodyBytes),
@@ -223,7 +231,7 @@ func (c *Client) SendRequest(ctx context.Context, processedRequest *config.Proce
 // SendRequestWithRetry はリトライ機能付きでHTTPリクエストを送信
 func (c *Client) SendRequestWithRetry(ctx context.Context, processedRequest *config.ProcessedRequest, maxRetries int) (*config.ResponseData, error) {
 	var lastErr error
-	
+
 	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
 			// リトライ前の待機時間（指数バックオフ）
@@ -240,13 +248,14 @@ func (c *Client) SendRequestWithRetry(ctx context.Context, processedRequest *con
 			return response, nil
 		}
 		if err != nil {
+			lastErr = err
 		} else if response.StatusCode >= 500 {
 			lastErr = fmt.Errorf("server error: %d", response.StatusCode)
 		} else {
 			return response, nil
 		}
 
-		
+
 		// コンテキストがキャンセルされた場合はリトライしない
 		if ctx.Err() != nil {
 			break

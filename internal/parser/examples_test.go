@@ -1,7 +1,7 @@
 package parser
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -9,33 +9,34 @@ import (
 
 func TestParseExamples(t *testing.T) {
 	exampleDir := "../../examples"
-	files, err := ioutil.ReadDir(exampleDir)
+	entries, err := os.ReadDir(exampleDir)
 	if err != nil {
 		t.Fatalf("Failed to read examples directory: %v", err)
 	}
 
 	parser := NewParser()
 
-	for _, file := range files {
-		if file.IsDir() {
+	for _, entry := range entries {
+		if entry.IsDir() {
 			continue
 		}
 
-		filePath := filepath.Join(exampleDir, file.Name())
-		if strings.HasPrefix(file.Name(), ".") {
+		fileName := entry.Name()
+		filePath := filepath.Join(exampleDir, fileName)
+		if strings.HasPrefix(fileName, ".") {
 			continue
 		}
 
-		t.Run(file.Name(), func(t *testing.T) {
-			data, err := ioutil.ReadFile(filePath)
+		t.Run(fileName, func(t *testing.T) {
+			data, err := os.ReadFile(filePath)
 			if err != nil {
 				t.Fatalf("Failed to read example file: %v", err)
 			}
 
-			ext := filepath.Ext(file.Name())
+			ext := filepath.Ext(fileName)
 			_, err = parser.Parse(data, ext, filePath)
 			if err != nil {
-				t.Errorf("Failed to parse example file %s: %v", file.Name(), err)
+				t.Errorf("Failed to parse example file %s: %v", fileName, err)
 			}
 		})
 	}

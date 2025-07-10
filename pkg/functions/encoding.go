@@ -24,11 +24,11 @@ func (f *URLEncodeFunction) Description() string {
 	return "文字列をURLエンコーディングします。エンコード回数と、オプションでエンコードしない文字を指定できます"
 }
 
-func (f *URLEncodeFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *URLEncodeFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) < 1 || len(args) > 3 {
 		return nil, fmt.Errorf("url_encode function expects 1 to 3 arguments, got %d", len(args))
 	}
-	
+
 	input, ok := args[0].(string)
 	if !ok {
 		return nil, fmt.Errorf("url_encode function expects string argument for the first argument")
@@ -70,7 +70,7 @@ func (f *URLEncodeFunction) Execute(ctx context.Context, args []interface{}) (in
 			encoded = url.QueryEscape(encoded)
 		}
 	}
-	
+
 	return encoded, nil
 }
 
@@ -89,21 +89,21 @@ func (f *URLDecodeFunction) Description() string {
 	return "URLエンコードされた文字列をデコードします"
 }
 
-func (f *URLDecodeFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *URLDecodeFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("url_decode function expects 1 argument, got %d", len(args))
 	}
-	
+
 	input, ok := args[0].(string)
 	if !ok {
 		return nil, fmt.Errorf("url_decode function expects string argument")
 	}
-	
+
 	decoded, err := url.QueryUnescape(input)
 	if err != nil {
 		return nil, fmt.Errorf("url_decode failed: %w", err)
 	}
-	
+
 	return decoded, nil
 }
 
@@ -122,16 +122,16 @@ func (f *Base64EncodeFunction) Description() string {
 	return "文字列をBase64エンコーディングします"
 }
 
-func (f *Base64EncodeFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *Base64EncodeFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("base64_encode function expects 1 argument, got %d", len(args))
 	}
-	
+
 	input, ok := args[0].(string)
 	if !ok {
 		return nil, fmt.Errorf("base64_encode function expects string argument")
 	}
-	
+
 	return base64.StdEncoding.EncodeToString([]byte(input)), nil
 }
 
@@ -150,21 +150,21 @@ func (f *Base64DecodeFunction) Description() string {
 	return "Base64エンコードされた文字列をデコードします"
 }
 
-func (f *Base64DecodeFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *Base64DecodeFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("base64_decode function expects 1 argument, got %d", len(args))
 	}
-	
+
 	input, ok := args[0].(string)
 	if !ok {
 		return nil, fmt.Errorf("base64_decode function expects string argument")
 	}
-	
+
 	decoded, err := base64.StdEncoding.DecodeString(input)
 	if err != nil {
 		return nil, fmt.Errorf("base64_decode failed: %w", err)
 	}
-	
+
 	return string(decoded), nil
 }
 
@@ -183,16 +183,16 @@ func (f *HTMLEncodeFunction) Description() string {
 	return "文字列をHTMLエンコーディングします"
 }
 
-func (f *HTMLEncodeFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *HTMLEncodeFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("html_encode function expects 1 argument, got %d", len(args))
 	}
-	
+
 	input, ok := args[0].(string)
 	if !ok {
 		return nil, fmt.Errorf("html_encode function expects string argument")
 	}
-	
+
 	return html.EscapeString(input), nil
 }
 
@@ -211,15 +211,15 @@ func (f *HTMLDecodeFunction) Description() string {
 	return "HTMLエンコードされた文字列をデコードします"
 }
 
-func (f *HTMLDecodeFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *HTMLDecodeFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("html_decode function expects 1 argument, got %d", len(args))
 	}
-	
+
 	input, ok := args[0].(string)
 	if !ok {
 		return nil, fmt.Errorf("html_decode function expects string argument")
 	}
-	
+
 	return html.UnescapeString(input), nil
 }

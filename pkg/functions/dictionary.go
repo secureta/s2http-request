@@ -5,13 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
-
-	"gopkg.in/yaml.v3"
 )
 
 // DictionaryLoadFunction は外部ファイルから辞書データを読み込む関数
@@ -65,13 +63,16 @@ func (f *DictionaryLoadFunction) Execute(ctx context.Context, args []interface{}
 	}
 }
 
-// loadJSONFile はJSONファイルを読み込む
-func (f *DictionaryLoadFunction) loadJSONFile(filePath string) (interface{}, error) {
+func (f *DictionaryLoadFunction) loadJSONFile(filePath string) (result interface{}, err error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open JSON file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close file: %w", closeErr)
+		}
+	}()
 
 	var data interface{}
 	decoder := json.NewDecoder(file)
@@ -83,12 +84,16 @@ func (f *DictionaryLoadFunction) loadJSONFile(filePath string) (interface{}, err
 }
 
 // loadYAMLFile はYAMLファイルを読み込む
-func (f *DictionaryLoadFunction) loadYAMLFile(filePath string) (interface{}, error) {
+func (f *DictionaryLoadFunction) loadYAMLFile(filePath string) (result interface{}, err error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open YAML file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close file: %w", closeErr)
+		}
+	}()
 
 	var data interface{}
 	decoder := yaml.NewDecoder(file)
@@ -100,12 +105,16 @@ func (f *DictionaryLoadFunction) loadYAMLFile(filePath string) (interface{}, err
 }
 
 // loadTextFile はテキストファイルを読み込む（1行1エントリ）
-func (f *DictionaryLoadFunction) loadTextFile(filePath string) (interface{}, error) {
+func (f *DictionaryLoadFunction) loadTextFile(filePath string) (result interface{}, err error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open text file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close file: %w", closeErr)
+		}
+	}()
 
 	var lines []string
 	scanner := bufio.NewScanner(file)
@@ -168,7 +177,7 @@ func (f *DictionaryRandomFunction) Description() string {
 	return "辞書配列からランダムに1つの値を選択します"
 }
 
-func (f *DictionaryRandomFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *DictionaryRandomFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("dict_random requires exactly 1 argument, got %d", len(args))
 	}
@@ -178,14 +187,14 @@ func (f *DictionaryRandomFunction) Execute(ctx context.Context, args []interface
 		if len(dict) == 0 {
 			return "", nil
 		}
-		rand.Seed(time.Now().UnixNano())
+		// Go 1.20以降の推奨方法
 		index := rand.Intn(len(dict))
 		return fmt.Sprintf("%v", dict[index]), nil
 	case []string:
 		if len(dict) == 0 {
 			return "", nil
 		}
-		rand.Seed(time.Now().UnixNano())
+		// Go 1.20以降の推奨方法
 		index := rand.Intn(len(dict))
 		return dict[index], nil
 	default:
@@ -208,7 +217,7 @@ func (f *DictionaryGetFunction) Description() string {
 	return "辞書配列から指定されたインデックスの値を取得します"
 }
 
-func (f *DictionaryGetFunction) Execute(ctx context.Context, args []interface{}) (interface{}, error) {
+func (f *DictionaryGetFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("dict_get requires exactly 2 arguments, got %d", len(args))
 	}
