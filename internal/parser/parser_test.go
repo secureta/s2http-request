@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/user/simple-request-dispatcher/internal/config"
+	"github.com/secureta/s2http-request/internal/config"
 )
 
 func TestParseJSON(t *testing.T) {
@@ -72,9 +72,9 @@ func TestParseJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			parser := NewParser()
-			
+
 			result, err := parser.Parse([]byte(tt.jsonData), ".json", "")
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
@@ -123,6 +123,28 @@ variables:
 			},
 		},
 		{
+			name: "multiple yaml documents (first document)",
+			yamlData: `
+method: GET
+path: /first
+query:
+  param1: value1
+---
+method: POST
+path: /second
+body:
+  key: value
+`,
+			wantError: false,
+			expected: &config.RequestConfig{
+				Method: "GET",
+				Path:   "/first",
+				Query: map[string]interface{}{
+					"param1": "value1",
+				},
+			},
+		},
+		{
 			name:      "invalid yaml",
 			yamlData:  "invalid: yaml: content: [",
 			wantError: true,
@@ -133,9 +155,9 @@ variables:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			parser := NewParser()
-			
+
 			result, err := parser.Parse([]byte(tt.yamlData), ".yaml", "")
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
@@ -148,6 +170,101 @@ variables:
 				}
 				if result.Path != tt.expected.Path {
 					t.Errorf("Expected path %s, got %s", tt.expected.Path, result.Path)
+				}
+			}
+		})
+	}
+}
+
+func TestParseMultipleYAML(t *testing.T) {
+	tests := []struct {
+		name      string
+		yamlData  string
+		wantError bool
+		expected  []*config.RequestConfig
+	}{
+		{
+			name: "single yaml document",
+			yamlData: `
+method: GET
+path: /test
+query:
+  param1: value1
+`,
+			wantError: false,
+			expected: []*config.RequestConfig{
+				{
+					Method: "GET",
+					Path:   "/test",
+					Query: map[string]interface{}{
+						"param1": "value1",
+					},
+				},
+			},
+		},
+		{
+			name: "multiple yaml documents",
+			yamlData: `
+method: GET
+path: /first
+query:
+  param1: value1
+---
+method: POST
+path: /second
+body:
+  key: value
+`,
+			wantError: false,
+			expected: []*config.RequestConfig{
+				{
+					Method: "GET",
+					Path:   "/first",
+					Query: map[string]interface{}{
+						"param1": "value1",
+					},
+				},
+				{
+					Method: "POST",
+					Path:   "/second",
+					Body: map[string]interface{}{
+						"key": "value",
+					},
+				},
+			},
+		},
+		{
+			name:      "invalid yaml",
+			yamlData:  "invalid: yaml: content: [",
+			wantError: true,
+			expected:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := NewParser()
+
+			results, err := parser.ParseMultiple([]byte(tt.yamlData), ".yaml", "")
+
+			if tt.wantError && err == nil {
+				t.Errorf("Expected error but got none")
+			}
+			if !tt.wantError && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+			if !tt.wantError && results != nil {
+				if len(results) != len(tt.expected) {
+					t.Errorf("Expected %d configs, got %d", len(tt.expected), len(results))
+				} else {
+					for i, result := range results {
+						if result.Method != tt.expected[i].Method {
+							t.Errorf("Config %d: Expected method %s, got %s", i, tt.expected[i].Method, result.Method)
+						}
+						if result.Path != tt.expected[i].Path {
+							t.Errorf("Config %d: Expected path %s, got %s", i, tt.expected[i].Path, result.Path)
+						}
+					}
 				}
 			}
 		})
@@ -210,9 +327,9 @@ func TestProcessValue(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			parser := NewParser()
 			ctx := context.WithValue(context.Background(), "variables", tt.variables)
-			
+
 			result, err := parser.processValue(ctx, tt.input)
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
@@ -301,9 +418,9 @@ func TestProcessRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			parser := NewParser()
 			ctx := context.Background()
-			
+
 			result, err := parser.ProcessRequest(ctx, tt.config, tt.baseURL)
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
@@ -371,7 +488,7 @@ func TestMapToQueryString(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			parser := NewParser()
 			result := parser.mapToQueryString(tt.input)
-			
+
 			// Since map iteration order is not guaranteed, we need to check
 			// that all expected key-value pairs are present
 			if tt.expected == "" && result != "" {

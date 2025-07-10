@@ -24,20 +24,24 @@ func NewParser() *Parser {
 	}
 }
 
-// Parse はファイル内容を解析してRequestConfigを返す
-func (p *Parser) Parse(data []byte, fileExt string, filePath string) (*config.RequestConfig, error) {
-	var requestConfig config.RequestConfig
+// ParseMultiple はファイル内容を解析して複数のRequestConfigを返す
+func (p *Parser) ParseMultiple(data []byte, fileExt string, filePath string) ([]*config.RequestConfig, error) {
+	var configs []*config.RequestConfig
 
 	switch strings.ToLower(fileExt) {
 	case ".json":
+		var requestConfig config.RequestConfig
 		if err := json.Unmarshal(data, &requestConfig); err != nil {
 			return nil, fmt.Errorf("failed to parse JSON: %w", err)
 		}
+		requestConfig.FilePath = filePath
+		configs = append(configs, &requestConfig)
 	case ".jsonl":
 		// JSONLファイルの場合、各行を個別のJSONとして解析
 		lines := strings.Split(string(data), "\n")
 
 		// 最初の有効なJSONオブジェクトをベースとして使用
+		var requestConfig config.RequestConfig
 		foundBase := false
 		for _, line := range lines {
 			line = strings.TrimSpace(line)
@@ -89,16 +93,48 @@ func (p *Parser) Parse(data []byte, fileExt string, filePath string) (*config.Re
 				requestConfig.Dictionary[key] = append(requestConfig.Dictionary[key], value)
 			}
 		}
+
+		requestConfig.FilePath = filePath
+		configs = append(configs, &requestConfig)
 	case ".yaml", ".yml":
-		if err := yaml.Unmarshal(data, &requestConfig); err != nil {
-			return nil, fmt.Errorf("failed to parse YAML: %w", err)
+		// YAMLファイルの場合、複数のドキュメントを処理
+		decoder := yaml.NewDecoder(strings.NewReader(string(data)))
+
+		for {
+			var requestConfig config.RequestConfig
+			err := decoder.Decode(&requestConfig)
+			if err != nil {
+				// EOFはエラーではなく、ドキュメントの終わりを示す
+				break
+			}
+
+			requestConfig.FilePath = filePath
+			configs = append(configs, &requestConfig)
+		}
+
+		if len(configs) == 0 {
+			return nil, fmt.Errorf("no valid YAML documents found in file")
 		}
 	default:
 		return nil, fmt.Errorf("unsupported file format: %s", fileExt)
 	}
 
-	requestConfig.FilePath = filePath
-	return &requestConfig, nil
+	return configs, nil
+}
+
+// Parse はファイル内容を解析してRequestConfigを返す
+// 複数のドキュメントがある場合は最初のものを返す
+func (p *Parser) Parse(data []byte, fileExt string, filePath string) (*config.RequestConfig, error) {
+	configs, err := p.ParseMultiple(data, fileExt, filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(configs) == 0 {
+		return nil, fmt.Errorf("no valid configuration found in file")
+	}
+
+	return configs[0], nil
 }
 
 // ProcessRequest はリクエスト設定を処理してProcessedRequestを返す

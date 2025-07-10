@@ -156,74 +156,77 @@ func processFile(p *parser.Parser, client *http.Client, cliConfig *config.CLICon
 	// ファイル拡張子の取得
 	ext := filepath.Ext(filePath)
 
-	// リクエスト設定の解析
-	requestConfig, err := p.Parse(data, ext, filePath)
+	// リクエスト設定の解析（複数のドキュメントに対応）
+	requestConfigs, err := p.ParseMultiple(data, ext, filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse request config: %w", err)
 	}
 
-	// リクエストの処理（辞書展開を含む）
-	processedRequests, err := p.ProcessRequestsWithRequestID(context.Background(), requestConfig, cliConfig.Host, cliConfig.RequestID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to process requests: %w", err)
-	}
+	var allResults []*config.Result
 
-	var results []*config.Result
-
-	// 各処理済みリクエストを送信
-	for _, processedRequest := range processedRequests {
-		// User-Agentの設定処理
-		if _, exists := processedRequest.Headers["User-Agent"]; !exists {
-			// JSONやYAMLファイルでUser-Agentが指定されていない場合
-			if userAgent != "" {
-				// コマンドライン引数が指定されている場合はそれを使用
-				processedRequest.Headers["User-Agent"] = userAgent
-			} else {
-				// コマンドライン引数も指定されていない場合はデフォルト値を使用
-				processedRequest.Headers["User-Agent"] = getDefaultUserAgent()
-			}
-		}
-
-		// リクエストの送信
-		ctx, cancel := context.WithTimeout(context.Background(), cliConfig.Timeout)
-		defer cancel()
-
-		var response *config.ResponseData
-		if cliConfig.Retry > 0 {
-			response, err = client.SendRequestWithRetry(ctx, processedRequest, cliConfig.Retry)
-		} else {
-			response, err = client.SendRequest(ctx, processedRequest)
-		}
-
+	// 各リクエスト設定を処理
+	for _, requestConfig := range requestConfigs {
+		// リクエストの処理（辞書展開を含む）
+		processedRequests, err := p.ProcessRequestsWithRequestID(context.Background(), requestConfig, cliConfig.Host, cliConfig.RequestID)
 		if err != nil {
-			log.Printf("Failed to send request: %v", err)
-			continue
+			return nil, fmt.Errorf("failed to process requests: %w", err)
 		}
 
-		// 結果の作成
-		result := &config.Result{
-			Request:  *processedRequest,
-			Response: *response,
-			Metadata: map[string]interface{}{
-				"file":       filePath,
-				"timestamp":  time.Now().Format(time.RFC3339),
-				"request_id": processedRequest.RequestID,
-			},
-		}
-
-		results = append(results, result)
-
-		// Verbose出力
-		if cliConfig.Verbose {
-			fmt.Printf("Request: %s %s\n", processedRequest.Method, processedRequest.URL)
-			if processedRequest.RequestID != "" {
-				fmt.Printf("Request ID: %s\n", processedRequest.RequestID)
+		// 各処理済みリクエストを送信
+		for _, processedRequest := range processedRequests {
+			// User-Agentの設定処理
+			if _, exists := processedRequest.Headers["User-Agent"]; !exists {
+				// JSONやYAMLファイルでUser-Agentが指定されていない場合
+				if userAgent != "" {
+					// コマンドライン引数が指定されている場合はそれを使用
+					processedRequest.Headers["User-Agent"] = userAgent
+				} else {
+					// コマンドライン引数も指定されていない場合はデフォルト値を使用
+					processedRequest.Headers["User-Agent"] = getDefaultUserAgent()
+				}
 			}
-			fmt.Printf("Response: %d\n", response.StatusCode)
+
+			// リクエストの送信
+			ctx, cancel := context.WithTimeout(context.Background(), cliConfig.Timeout)
+			defer cancel()
+
+			var response *config.ResponseData
+			if cliConfig.Retry > 0 {
+				response, err = client.SendRequestWithRetry(ctx, processedRequest, cliConfig.Retry)
+			} else {
+				response, err = client.SendRequest(ctx, processedRequest)
+			}
+
+			if err != nil {
+				log.Printf("Failed to send request: %v", err)
+				continue
+			}
+
+			// 結果の作成
+			result := &config.Result{
+				Request:  *processedRequest,
+				Response: *response,
+				Metadata: map[string]interface{}{
+					"file":       filePath,
+					"timestamp":  time.Now().Format(time.RFC3339),
+					"request_id": processedRequest.RequestID,
+				},
+			}
+
+			allResults = append(allResults, result)
+
+			// Verbose出力
+			if cliConfig.Verbose {
+				fmt.Printf("Request: %s %s\n", processedRequest.Method, processedRequest.URL)
+				if processedRequest.RequestID != "" {
+					fmt.Printf("Request ID: %s\n", processedRequest.RequestID)
+				}
+				fmt.Printf("Response: %d\n", response.StatusCode)
+			}
 		}
 	}
 
-	return results, nil
+	return allResults, nil
 }
 
 func outputResults(results []*config.Result, cliConfig *config.CLIConfig) error {

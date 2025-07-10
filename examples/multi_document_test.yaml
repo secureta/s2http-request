@@ -1,0 +1,17 @@
+method: GET
+path: /api/v1/users
+query:
+  page: 1
+  limit: 10
+---
+method: POST
+path: /api/v1/users
+body:
+  name: "John Doe"
+  email: "john@example.com"
+---
+method: PUT
+path: /api/v1/users/123
+body:
+  name: "John Smith"
+  email: "john.smith@example.com"
