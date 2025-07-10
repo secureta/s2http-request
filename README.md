@@ -345,6 +345,14 @@ s2req request.jsonl
 # Execute multiple request files
 s2req requests/*.json
 
+# Read from standard input (JSON, JSONL, or YAML format)
+cat request.json | s2req
+echo '{"method": "GET", "path": "/"}' | s2req
+s2req < request.yaml
+
+# Use "-" to explicitly read from stdin
+cat request.jsonl | s2req -
+
 # Verbose output mode
 s2req --verbose request.json
 
