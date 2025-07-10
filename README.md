@@ -18,12 +18,12 @@ A **Simple and Structured HTTP Request** dispatching tool.
 
 ## Overview
 
-s2http-request is a versatile and lightweight HTTP request dispatching tool designed for various testing and automation scenarios. It allows users to define complex HTTP requests using pure JSON/YAML, eliminating the need for domain-specific languages (DSLs) or templating engines. This approach ensures clarity, simplicity, and ease of integration with existing workflows.
+s2http-request is a versatile and lightweight HTTP request dispatching tool designed for various testing and automation scenarios. It allows users to define complex HTTP requests using pure JSON/YAML/JSONL, eliminating the need for domain-specific languages (DSLs) or templating engines. This approach ensures clarity, simplicity, and ease of integration with existing workflows.
 
 ## Features
 
 - 🚀 **Lightweight & Portable:** Distributed as a single, self-contained binary.
-- 📝 **Declarative Configuration:** Define requests using intuitive JSON/YAML files.
+- 📝 **Declarative Configuration:** Define requests using intuitive JSON/YAML/JSONL files.
 - 🔧 **Dynamic Value Generation:** Leverage powerful built-in functions for on-the-fly data manipulation.
 - 📊 **Comprehensive Output:** Get detailed response information for thorough analysis.
 - ⚡ **High Performance:** Built with Go for speed and efficiency.
@@ -66,6 +66,17 @@ s2http-request is a versatile and lightweight HTTP request dispatching tool desi
   }
 }
 ```
+
+### JSONL Request Definition
+
+```jsonl
+{"method": "GET", "path": "/api/users"}
+{"method": "GET", "path": "/api/users", "query": {"id": 1}}
+{"method": "GET", "path": "/api/users", "query": {"id": 2}}
+{"method": "POST", "path": "/api/users", "body": {"name": "John", "email": "john@example.com"}}
+```
+
+In JSONL format, each line is a separate JSON object. The tool will use the first valid JSON object as the base request configuration and combine all objects into a dictionary for multiple requests.
 
 ### Array-based Parameter Definition
 
@@ -196,6 +207,7 @@ You can load and use external dictionary files containing lists of values (e.g.,
 
 - **JSON**: Define payloads as an array
 - **YAML**: Define payloads as an array or map
+- **JSONL**: Each line contains a separate JSON object
 - **Text**: One payload per line (empty lines are skipped)
 
 ### Example Dictionary Files
@@ -326,6 +338,9 @@ s2req request.json
 
 # Execute request from a YAML file
 s2req request.yaml
+
+# Execute request from a JSONL file
+s2req request.jsonl
 
 # Execute multiple request files
 s2req requests/*.json

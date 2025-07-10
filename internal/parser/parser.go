@@ -27,11 +27,67 @@ func NewParser() *Parser {
 // Parse はファイル内容を解析してRequestConfigを返す
 func (p *Parser) Parse(data []byte, fileExt string, filePath string) (*config.RequestConfig, error) {
 	var requestConfig config.RequestConfig
-	
+
 	switch strings.ToLower(fileExt) {
 	case ".json":
 		if err := json.Unmarshal(data, &requestConfig); err != nil {
 			return nil, fmt.Errorf("failed to parse JSON: %w", err)
+		}
+	case ".jsonl":
+		// JSONLファイルの場合、各行を個別のJSONとして解析
+		lines := strings.Split(string(data), "\n")
+
+		// 最初の有効なJSONオブジェクトをベースとして使用
+		foundBase := false
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
+				continue // 空行やコメント行をスキップ
+			}
+
+			// 最初の有効なJSONオブジェクトを解析
+			if err := json.Unmarshal([]byte(line), &requestConfig); err != nil {
+				continue // 解析エラーの場合はスキップ
+			}
+
+			foundBase = true
+			break
+		}
+
+		if !foundBase {
+			return nil, fmt.Errorf("no valid JSON object found in JSONL file")
+		}
+
+		// Dictionaryが未初期化の場合は初期化
+		if requestConfig.Dictionary == nil {
+			requestConfig.Dictionary = make(map[string][]interface{})
+		}
+
+		// 各行をDictionaryに追加
+		for i, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
+				continue // 空行やコメント行をスキップ
+			}
+
+			var lineObj map[string]interface{}
+			if err := json.Unmarshal([]byte(line), &lineObj); err != nil {
+				continue // 解析エラーの場合はスキップ
+			}
+
+			// 各フィールドをDictionaryに追加
+			for key, value := range lineObj {
+				if _, exists := requestConfig.Dictionary[key]; !exists {
+					requestConfig.Dictionary[key] = make([]interface{}, 0)
+				}
+
+				// 配列の長さを揃える
+				for len(requestConfig.Dictionary[key]) < i {
+					requestConfig.Dictionary[key] = append(requestConfig.Dictionary[key], nil)
+				}
+
+				requestConfig.Dictionary[key] = append(requestConfig.Dictionary[key], value)
+			}
 		}
 	case ".yaml", ".yml":
 		if err := yaml.Unmarshal(data, &requestConfig); err != nil {
@@ -40,7 +96,7 @@ func (p *Parser) Parse(data []byte, fileExt string, filePath string) (*config.Re
 	default:
 		return nil, fmt.Errorf("unsupported file format: %s", fileExt)
 	}
-	
+
 	requestConfig.FilePath = filePath
 	return &requestConfig, nil
 }
@@ -49,7 +105,7 @@ func (p *Parser) Parse(data []byte, fileExt string, filePath string) (*config.Re
 func (p *Parser) ProcessRequest(ctx context.Context, requestConfig *config.RequestConfig, baseURL string) (*config.ProcessedRequest, error) {
 	// URLの構築
 	fullURL := baseURL + requestConfig.Path
-	
+
 	// コンテキストにリクエストファイルのパスを設定
 	ctx = context.WithValue(ctx, "requestFilePath", requestConfig.FilePath)
 
@@ -68,7 +124,7 @@ func (p *Parser) ProcessRequest(ctx context.Context, requestConfig *config.Reque
 			}
 		}
 	}
-	
+
 	// ヘッダーの処理
 	headers := make(map[string]string)
 	if requestConfig.Headers != nil {
@@ -82,7 +138,7 @@ func (p *Parser) ProcessRequest(ctx context.Context, requestConfig *config.Reque
 			}
 		}
 	}
-	
+
 	// ボディの処理
 	var body string
 	if requestConfig.Params != nil {
@@ -100,7 +156,7 @@ func (p *Parser) ProcessRequest(ctx context.Context, requestConfig *config.Reque
 		}
 		body = fmt.Sprintf("%v", processedBody)
 	}
-	
+
 	return &config.ProcessedRequest{
 		Method:  requestConfig.Method,
 		URL:     fullURL,
@@ -136,7 +192,7 @@ func (p *Parser) processValue(ctx context.Context, value interface{}) (interface
 				if !exists {
 					return nil, fmt.Errorf("unknown function: %s", funcName)
 				}
-				
+
 				// 引数を処理
 				var processedArgs []interface{}
 				switch a := args.(type) {
@@ -155,11 +211,11 @@ func (p *Parser) processValue(ctx context.Context, value interface{}) (interface
 					}
 					processedArgs = []interface{}{processedArg}
 				}
-				
+
 				return fn.Execute(ctx, processedArgs)
 			}
 		}
-		
+
 		// 通常のマップとして処理
 		result := make(map[string]interface{})
 		for k, val := range v {
@@ -170,7 +226,7 @@ func (p *Parser) processValue(ctx context.Context, value interface{}) (interface
 			result[k] = processedVal
 		}
 		return result, nil
-		
+
 	case []interface{}:
 		var result []interface{}
 		for _, item := range v {
@@ -181,7 +237,7 @@ func (p *Parser) processValue(ctx context.Context, value interface{}) (interface
 			result = append(result, processedItem)
 		}
 		return result, nil
-		
+
 	default:
 		return value, nil
 	}
@@ -252,7 +308,7 @@ func (p *Parser) ProcessRequestsWithRequestID(ctx context.Context, requestConfig
 		for k, v := range dictVars {
 			mergedVars[k] = v
 		}
-		
+
 		// 変数を事前に処理
 		processedVars, err := p.processVariables(ctx, mergedVars)
 		if err != nil {
@@ -278,14 +334,14 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 
 	// URLの構築
 	fullURL := baseURL + requestConfig.Path
-	
+
 	// Request IDをパスに追加
 	if requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationPathHead {
 		fullURL = baseURL + "/" + requestID + requestConfig.Path
 	} else if requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationPathTail {
 		fullURL = baseURL + requestConfig.Path + "/" + requestID
 	}
-	
+
 	// コンテキストにリクエストファイルのパスを設定
 	ctx = context.WithValue(ctx, "requestFilePath", requestConfig.FilePath)
 
@@ -298,12 +354,12 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 			}
 		}
 	}
-	
+
 	// Request IDをクエリパラメータに追加
 	if requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationQuery {
 		queryParams[requestIDConfig.Key] = requestID
 	}
-	
+
 	if len(queryParams) > 0 {
 		processedQuery, err := p.processMap(ctx, queryParams)
 		if err != nil {
@@ -316,7 +372,7 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 			}
 		}
 	}
-	
+
 	// ヘッダーの処理
 	headers := make(map[string]string)
 	headerParams := make(map[string]interface{})
@@ -327,12 +383,12 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 			}
 		}
 	}
-	
+
 	// Request IDをヘッダーに追加
 	if requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationHeader {
 		headerParams[requestIDConfig.Key] = requestID
 	}
-	
+
 	if len(headerParams) > 0 {
 		processedHeaders, err := p.processMap(ctx, headerParams)
 		if err != nil {
@@ -342,7 +398,7 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 			headers[k] = fmt.Sprintf("%v", v)
 		}
 	}
-	
+
 	// ボディの処理
 	var body string
 	if requestConfig.Params != nil {
@@ -360,7 +416,7 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 		}
 		body = fmt.Sprintf("%v", processedBody)
 	}
-	
+
 	return &config.ProcessedRequest{
 		Method:    requestConfig.Method,
 		URL:       fullURL,
@@ -416,7 +472,7 @@ func (p *Parser) ProcessRequests(ctx context.Context, requestConfig *config.Requ
 		for k, v := range dictVars {
 			mergedVars[k] = v
 		}
-		
+
 		// 変数を事前に処理
 		processedVars, err := p.processVariables(ctx, mergedVars)
 		if err != nil {
@@ -436,41 +492,41 @@ func (p *Parser) ProcessRequests(ctx context.Context, requestConfig *config.Requ
 func (p *Parser) processVariables(ctx context.Context, variables map[string]interface{}) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 	processed := make(map[string]bool)
-	
+
 	// 依存関係を解決するために複数回処理
 	maxIterations := len(variables) * 2 // 循環参照防止
 	for iteration := 0; iteration < maxIterations; iteration++ {
 		progressMade := false
-		
+
 		for varName, varValue := range variables {
 			if processed[varName] {
 				continue
 			}
-			
+
 			// 一時的にこの変数以外をコンテキストに設定
 			tempVars := make(map[string]interface{})
 			for k, v := range result {
 				tempVars[k] = v
 			}
 			tempCtx := context.WithValue(ctx, "variables", tempVars)
-			
+
 			// 変数値を処理
 			processedValue, err := p.processValue(tempCtx, varValue)
 		if err != nil {
 				// この変数がまだ処理できない場合は次の反復で試す
 				continue
 			}
-			
+
 			result[varName] = processedValue
 			processed[varName] = true
 			progressMade = true
 		}
-		
+
 		// 全ての変数が処理された場合
 		if len(result) == len(variables) {
 			break
 		}
-		
+
 		// 進歩がない場合は循環参照または未定義変数
 		if !progressMade {
 			// 未処理の変数を特定
@@ -483,6 +539,6 @@ func (p *Parser) processVariables(ctx context.Context, variables map[string]inte
 			return nil, fmt.Errorf("unable to resolve variables (possible circular dependency or undefined reference): %v", unprocessed)
 		}
 	}
-	
+
 	return result, nil
 }

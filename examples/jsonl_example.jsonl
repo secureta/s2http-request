@@ -1,0 +1,4 @@
+{"method": "GET", "path": "/api/users"}
+{"method": "GET", "path": "/api/users", "query": {"id": 1}}
+{"method": "GET", "path": "/api/users", "query": {"id": 2}}
+{"method": "POST", "path": "/api/users", "body": {"name": "John", "email": "john@example.com"}}
