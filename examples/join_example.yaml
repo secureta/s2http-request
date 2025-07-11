@@ -1,0 +1,21 @@
+method: POST
+path: /api/tags
+headers:
+  Content-Type: application/json
+body:
+  $json:
+    tags:
+      # Join array of strings with comma delimiter
+      comma_separated:
+        $join:
+          values: ["tag1", "tag2", "tag3"]
+          delimiter: ","
+      # Join array of strings with no delimiter
+      no_delimiter:
+        $join:
+          values: ["prefix", "main", "suffix"]
+      # Join array of strings with space delimiter
+      space_separated:
+        $join:
+          values: ["Hello", "World"]
+          delimiter: " "

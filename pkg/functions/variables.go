@@ -78,27 +78,47 @@ func (f *JoinFunction) Name() string {
 }
 
 func (f *JoinFunction) Signature() string {
-	return "$join [separator, value1, value2, ...]"
+	return "$join {values: [value1, value2, ...], delimiter: optional_delimiter}"
 }
 
 func (f *JoinFunction) Description() string {
-	return "指定した区切り文字で複数の値を結合します"
+	return "文字列の配列を指定した区切り文字で結合します。区切り文字が指定されない場合は区切り文字なしで結合します。"
 }
 
 func (f *JoinFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
-	if len(args) < 2 {
-		return nil, fmt.Errorf("join function expects at least 2 arguments, got %d", len(args))
+	if len(args) == 0 {
+		return nil, fmt.Errorf("join function expects at least 1 argument (values), got 0")
 	}
 
-	separator, ok := args[0].(string)
-	if !ok {
-		return nil, fmt.Errorf("join function expects string separator as first argument")
+	// デフォルトの区切り文字は空文字
+	delimiter := ""
+
+	// 引数が2つある場合、2番目は区切り文字
+	if len(args) > 1 {
+		var ok bool
+		delimiter, ok = args[1].(string)
+		if !ok {
+			return nil, fmt.Errorf("join function expects string delimiter as second argument")
+		}
 	}
 
-	var parts []string
-	for _, arg := range args[1:] {
-		parts = append(parts, fmt.Sprintf("%v", arg))
+	// 最初の引数は文字列の配列
+	var strValues []string
+
+	// 配列の型に応じて処理
+	switch values := args[0].(type) {
+	case []interface{}:
+		for _, v := range values {
+			strValues = append(strValues, fmt.Sprintf("%v", v))
+		}
+	case []string:
+		strValues = values
+	case string:
+		// 単一の文字列の場合はそのまま返す
+		return values, nil
+	default:
+		return nil, fmt.Errorf("join function expects array of values as first argument")
 	}
 
-	return strings.Join(parts, separator), nil
+	return strings.Join(strValues, delimiter), nil
 }

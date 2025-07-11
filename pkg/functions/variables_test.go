@@ -47,9 +47,9 @@ func TestVarFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fn := &VarFunction{}
 			ctx := context.WithValue(context.Background(), "variables", tt.variables)
-			
+
 			result, err := fn.Execute(ctx, tt.args)
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
@@ -95,9 +95,9 @@ func TestConcatFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fn := &ConcatFunction{}
 			ctx := context.Background()
-			
+
 			result, err := fn.Execute(ctx, tt.args)
-			
+
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
@@ -116,26 +116,56 @@ func TestJoinFunction(t *testing.T) {
 		wantError bool
 	}{
 		{
-			name:      "join with comma",
-			args:      []interface{}{",", "a", "b", "c"},
+			name:      "array with no delimiter",
+			args:      []interface{}{[]interface{}{"a", "b", "c"}},
+			expected:  "abc",
+			wantError: false,
+		},
+		{
+			name:      "array with comma delimiter",
+			args:      []interface{}{[]interface{}{"a", "b", "c"}, ","},
 			expected:  "a,b,c",
 			wantError: false,
 		},
 		{
-			name:      "join with space",
-			args:      []interface{}{" ", "hello", "world"},
+			name:      "array with space delimiter",
+			args:      []interface{}{[]interface{}{"hello", "world"}, " "},
 			expected:  "hello world",
 			wantError: false,
 		},
 		{
-			name:      "insufficient arguments",
-			args:      []interface{}{"separator"},
+			name:      "string array with delimiter",
+			args:      []interface{}{[]string{"x", "y", "z"}, "-"},
+			expected:  "x-y-z",
+			wantError: false,
+		},
+		{
+			name:      "single string value",
+			args:      []interface{}{"single"},
+			expected:  "single",
+			wantError: false,
+		},
+		{
+			name:      "empty array",
+			args:      []interface{}{[]interface{}{}},
+			expected:  "",
+			wantError: false,
+		},
+		{
+			name:      "no arguments",
+			args:      []interface{}{},
 			expected:  "",
 			wantError: true,
 		},
 		{
-			name:      "non-string separator",
-			args:      []interface{}{123, "a", "b"},
+			name:      "non-string delimiter",
+			args:      []interface{}{[]interface{}{"a", "b"}, 123},
+			expected:  "",
+			wantError: true,
+		},
+		{
+			name:      "invalid values type",
+			args:      []interface{}{123},
 			expected:  "",
 			wantError: true,
 		},
@@ -145,9 +175,9 @@ func TestJoinFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fn := &JoinFunction{}
 			ctx := context.Background()
-			
+
 			result, err := fn.Execute(ctx, tt.args)
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
