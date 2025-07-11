@@ -1,4 +1,5 @@
 method: GET
 path: /search
 query:
-  q: !url_encode: "search term with spaces & special characters"
+  q:
+    $url_encode: "search term with spaces & special characters"

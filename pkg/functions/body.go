@@ -18,7 +18,7 @@ func (f *FormFunction) Name() string {
 }
 
 func (f *FormFunction) Signature() string {
-	return "!form <map>"
+	return "$form <map>"
 }
 
 func (f *FormFunction) Description() string {
@@ -53,7 +53,7 @@ func (f *JSONFunction) Name() string {
 }
 
 func (f *JSONFunction) Signature() string {
-	return "!json {value: <value>, space?: <space>}"
+	return "$json {value: <value>, space?: <space>}"
 }
 
 func (f *JSONFunction) Description() string {
@@ -116,7 +116,7 @@ func (f *MultipartFunction) Name() string {
 }
 
 func (f *MultipartFunction) Signature() string {
-	return "!multipart <value> <boundary>"
+	return "$multipart <value> <boundary>"
 }
 
 func (f *MultipartFunction) Description() string {

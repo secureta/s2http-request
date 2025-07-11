@@ -4,44 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"net/url"
 	"strings"
 	"time"
 	"unicode"
 )
-
-// DoubleEncodeFunction は二重URLエンコーディング関数
-type DoubleEncodeFunction struct{}
-
-func (f *DoubleEncodeFunction) Name() string {
-	return "double_encode"
-}
-
-func (f *DoubleEncodeFunction) Signature() string {
-	return "!double_encode <string>"
-}
-
-func (f *DoubleEncodeFunction) Description() string {
-	return "文字列を二重URLエンコーディングします（WAF回避用）"
-}
-
-func (f *DoubleEncodeFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
-	if len(args) != 1 {
-		return nil, fmt.Errorf("double_encode function expects 1 argument, got %d", len(args))
-	}
-
-	input, ok := args[0].(string)
-	if !ok {
-		return nil, fmt.Errorf("double_encode function expects string argument")
-	}
-
-	// 一回目のエンコーディング
-	encoded := url.QueryEscape(input)
-	// 二回目のエンコーディング
-	doubleEncoded := url.QueryEscape(encoded)
-
-	return doubleEncoded, nil
-}
 
 // UnicodeEncodeFunction はUnicode文字エンコーディング関数
 type UnicodeEncodeFunction struct{}
@@ -51,7 +17,7 @@ func (f *UnicodeEncodeFunction) Name() string {
 }
 
 func (f *UnicodeEncodeFunction) Signature() string {
-	return "!unicode_encode <string>"
+	return "$unicode_encode <string>"
 }
 
 func (f *UnicodeEncodeFunction) Description() string {
@@ -89,7 +55,7 @@ func (f *CaseVariationFunction) Name() string {
 }
 
 func (f *CaseVariationFunction) Signature() string {
-	return "!case_variation <string>"
+	return "$case_variation <string>"
 }
 
 func (f *CaseVariationFunction) Description() string {

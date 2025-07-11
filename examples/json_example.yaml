@@ -3,7 +3,7 @@ path: /api/users
 headers:
   Content-Type: application/json
 body:
-  !json:
+  $json:
     value:
       name: John Doe
       email: john@example.com

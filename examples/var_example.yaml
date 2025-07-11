@@ -1,6 +1,7 @@
 method: GET
 path: /api/user
 query:
-  user_id: !var: user_id
+  user_id:
+    $var: user_id
 variables:
   user_id: 12345

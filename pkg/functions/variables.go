@@ -16,7 +16,7 @@ func (f *VarFunction) Name() string {
 }
 
 func (f *VarFunction) Signature() string {
-	return "!var <variable_name>"
+	return "$var <variable_name>"
 }
 
 func (f *VarFunction) Description() string {
@@ -50,7 +50,7 @@ func (f *ConcatFunction) Name() string {
 }
 
 func (f *ConcatFunction) Signature() string {
-	return "!concat [value1, value2, ...]"
+	return "$concat [value1, value2, ...]"
 }
 
 func (f *ConcatFunction) Description() string {
@@ -78,7 +78,7 @@ func (f *JoinFunction) Name() string {
 }
 
 func (f *JoinFunction) Signature() string {
-	return "!join [separator, value1, value2, ...]"
+	return "$join [separator, value1, value2, ...]"
 }
 
 func (f *JoinFunction) Description() string {

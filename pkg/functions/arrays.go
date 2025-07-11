@@ -13,7 +13,7 @@ func (f *ConcatArraysFunction) Name() string {
 }
 
 func (f *ConcatArraysFunction) Signature() string {
-	return "concat_arrays(arrays: ...[]any) -> []string"
+	return "$concat_arrays <arrays...>"
 }
 
 func (f *ConcatArraysFunction) Description() string {

@@ -373,7 +373,7 @@ s2req --timeout 30 request.json
 s2req --retry 3 request.json
 
 # Use proxy
-s2req --proxy http://proxy.example.com:8080 request.json
+s2req --proxy https://proxy.example.com:8080 request.json
 ```
 
 ## Output Format

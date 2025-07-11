@@ -18,7 +18,7 @@ func (f *RandomFunction) Name() string {
 }
 
 func (f *RandomFunction) Signature() string {
-	return "!random <max>"
+	return "$random <max>"
 }
 
 func (f *RandomFunction) Description() string {
@@ -62,7 +62,7 @@ func (f *RandomStringFunction) Name() string {
 }
 
 func (f *RandomStringFunction) Signature() string {
-	return "!random_string <length> [charset]"
+	return "$random_string <length> [charset]"
 }
 
 func (f *RandomStringFunction) Description() string {
@@ -128,7 +128,7 @@ func (f *UUIDFunction) Name() string {
 }
 
 func (f *UUIDFunction) Signature() string {
-	return "!uuid"
+	return "$uuid"
 }
 
 func (f *UUIDFunction) Description() string {

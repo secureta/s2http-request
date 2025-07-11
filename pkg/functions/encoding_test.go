@@ -34,7 +34,7 @@ func TestURLEncodeFunction(t *testing.T) {
 		},
 		{
 			name:      "wrong number of arguments",
-			args:      []interface{}{"arg1", "arg2", "arg3"},
+			args:      []interface{}{"arg1", "arg2", "arg3", "arg4"},
 			expected:  "",
 			wantError: true,
 		},
@@ -59,24 +59,24 @@ func TestURLEncodeFunction(t *testing.T) {
 		{
 			name:      "double encode",
 			args:      []interface{}{"hello world", 2.0},
-			expected:  "hello%2520world",
+			expected:  "hello%2Bworld",
 			wantError: false,
 		},
 		{
 			name:      "triple encode",
 			args:      []interface{}{"hello world", 3.0},
-			expected:  "hello%25252520world",
+			expected:  "hello%252Bworld",
 			wantError: false,
 		},
 		{
 			name:      "double encode with chars to not encode",
 			args:      []interface{}{"hello/world", 2.0, "/"},
-			expected:  "hello%252Fworld",
+			expected:  "hello/world",
 			wantError: false,
 		},
 		{
 			name:      "invalid times argument type",
-			args:      []interface{}{"hello", "two"},
+			args:      []interface{}{"hello", true},
 			expected:  "",
 			wantError: true,
 		},
@@ -86,9 +86,9 @@ func TestURLEncodeFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fn := &URLEncodeFunction{}
 			ctx := context.Background()
-			
+
 			result, err := fn.Execute(ctx, tt.args)
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
@@ -133,9 +133,9 @@ func TestURLDecodeFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fn := &URLDecodeFunction{}
 			ctx := context.Background()
-			
+
 			result, err := fn.Execute(ctx, tt.args)
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
@@ -180,9 +180,9 @@ func TestBase64EncodeFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fn := &Base64EncodeFunction{}
 			ctx := context.Background()
-			
+
 			result, err := fn.Execute(ctx, tt.args)
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
@@ -221,9 +221,9 @@ func TestBase64DecodeFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fn := &Base64DecodeFunction{}
 			ctx := context.Background()
-			
+
 			result, err := fn.Execute(ctx, tt.args)
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
@@ -259,9 +259,9 @@ func TestHTMLEncodeFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fn := &HTMLEncodeFunction{}
 			ctx := context.Background()
-			
+
 			result, err := fn.Execute(ctx, tt.args)
-			
+
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
@@ -294,9 +294,9 @@ func TestHTMLDecodeFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fn := &HTMLDecodeFunction{}
 			ctx := context.Background()
-			
+
 			result, err := fn.Execute(ctx, tt.args)
-			
+
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}

@@ -17,7 +17,7 @@ func (f *URLEncodeFunction) Name() string {
 }
 
 func (f *URLEncodeFunction) Signature() string {
-	return "!url_encode <string> [times] [chars_to_not_encode]"
+	return "$url_encode <string> [times] [chars_to_not_encode]"
 }
 
 func (f *URLEncodeFunction) Description() string {
@@ -82,7 +82,7 @@ func (f *URLDecodeFunction) Name() string {
 }
 
 func (f *URLDecodeFunction) Signature() string {
-	return "!url_decode <encoded_string>"
+	return "$url_decode <encoded_string>"
 }
 
 func (f *URLDecodeFunction) Description() string {
@@ -115,7 +115,7 @@ func (f *Base64EncodeFunction) Name() string {
 }
 
 func (f *Base64EncodeFunction) Signature() string {
-	return "!base64_encode <string>"
+	return "$base64_encode <string>"
 }
 
 func (f *Base64EncodeFunction) Description() string {
@@ -143,7 +143,7 @@ func (f *Base64DecodeFunction) Name() string {
 }
 
 func (f *Base64DecodeFunction) Signature() string {
-	return "!base64_decode <encoded_string>"
+	return "$base64_decode <encoded_string>"
 }
 
 func (f *Base64DecodeFunction) Description() string {
@@ -176,7 +176,7 @@ func (f *HTMLEncodeFunction) Name() string {
 }
 
 func (f *HTMLEncodeFunction) Signature() string {
-	return "!html_encode <string>"
+	return "$html_encode <string>"
 }
 
 func (f *HTMLEncodeFunction) Description() string {
@@ -204,7 +204,7 @@ func (f *HTMLDecodeFunction) Name() string {
 }
 
 func (f *HTMLDecodeFunction) Signature() string {
-	return "!html_decode <encoded_string>"
+	return "$html_decode <encoded_string>"
 }
 
 func (f *HTMLDecodeFunction) Description() string {

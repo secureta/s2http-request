@@ -23,10 +23,10 @@ func NewRegistry() *Registry {
 	registry := &Registry{
 		functions: make(map[string]Function),
 	}
-	
+
 	// 組み込み関数を登録
 	registry.registerBuiltinFunctions()
-	
+
 	return registry
 }
 
@@ -36,7 +36,7 @@ func (r *Registry) registerBuiltinFunctions() {
 	r.functions["var"] = &VarFunction{}
 	r.functions["concat"] = &ConcatFunction{}
 	r.functions["join"] = &JoinFunction{}
-	
+
 	// エンコーディング関数
 	r.functions["url_encode"] = &URLEncodeFunction{}
 	r.functions["url_decode"] = &URLDecodeFunction{}
@@ -44,33 +44,26 @@ func (r *Registry) registerBuiltinFunctions() {
 	r.functions["base64_decode"] = &Base64DecodeFunction{}
 	r.functions["html_encode"] = &HTMLEncodeFunction{}
 	r.functions["html_decode"] = &HTMLDecodeFunction{}
-	
+
 	// ランダム生成関数
 	r.functions["random"] = &RandomFunction{}
 	r.functions["random_string"] = &RandomStringFunction{}
 	r.functions["uuid"] = &UUIDFunction{}
-	
+
 	// 時間関数
 	r.functions["timestamp"] = &TimestampFunction{}
 	r.functions["date"] = &DateFunction{}
 	r.functions["time"] = &TimeFunction{}
-	
-	// WAF回避関数
-	r.functions["double_encode"] = &DoubleEncodeFunction{}
+
 	r.functions["unicode_encode"] = &UnicodeEncodeFunction{}
 	r.functions["case_variation"] = &CaseVariationFunction{}
-	
+
 	// 辞書操作関数
 	r.functions["dict_load"] = &DictionaryLoadFunction{}
-	r.functions["dict_random"] = &DictionaryRandomFunction{}
-	r.functions["dict_get"] = &DictionaryGetFunction{}
-	
+
 	// 配列操作関数
 	r.functions["concat_arrays"] = &ConcatArraysFunction{}
-	
-	// Fuzzing関数
-	r.functions["dict_fuzz"] = &DictionaryFuzzFunction{}
-	
+
 	// ボディ変換関数
 	r.functions["form"] = &FormFunction{}
 	r.functions["json"] = &JSONFunction{}
@@ -89,7 +82,7 @@ func (r *Registry) Execute(ctx context.Context, name string, args []interface{})
 	if !exists {
 		return nil, fmt.Errorf("unknown function: %s", name)
 	}
-	
+
 	return fn.Execute(ctx, args)
 }
 

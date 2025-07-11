@@ -3,7 +3,8 @@ path: /api/events
 headers:
   Content-Type: application/json
 body:
-  !json:
+  $json:
     value:
       event: "user_login"
-      timestamp: !timestamp: "2006-01-02T15:04:05Z07:00"
+      timestamp:
+        $timestamp: "2006-01-02T15:04:05Z07:00"

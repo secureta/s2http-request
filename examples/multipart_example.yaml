@@ -3,7 +3,7 @@ path: /upload
 headers:
   Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 body:
-  !multipart:
+  $multipart:
     - name: John Doe
       email: john@example.com
       description: Test user

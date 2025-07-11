@@ -1,9 +1,10 @@
 method: GET
-path: !concat:
-  - /api/
-  - !var: resource_type
-  - /
-  - !var: resource_id
+path:
+  $concat:
+    - /api/
+    - $var: resource_type
+    - /
+    - $var: resource_id
 variables:
   resource_type: users
   resource_id: 12345

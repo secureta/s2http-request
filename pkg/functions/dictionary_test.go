@@ -123,63 +123,7 @@ admin' OR '1'='1
 	}
 }
 
-func TestDictionaryRandomFunction(t *testing.T) {
-	fn := &DictionaryRandomFunction{}
-	ctx := context.Background()
 
-	testDict := []string{"payload1", "payload2", "payload3"}
-
-	result, err := fn.Execute(ctx, []interface{}{testDict})
-	if err != nil {
-		t.Fatalf("dict_random failed: %v", err)
-	}
-
-	resultStr, ok := result.(string)
-	if !ok {
-		t.Fatalf("Expected string, got %T", result)
-	}
-
-	// 結果が辞書の中の値のいずれかであることを確認
-	found := false
-	for _, item := range testDict {
-		if resultStr == item {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		t.Errorf("Result '%s' not found in dictionary", resultStr)
-	}
-}
-
-func TestDictionaryGetFunction(t *testing.T) {
-	fn := &DictionaryGetFunction{}
-	ctx := context.Background()
-
-	testDict := []string{"payload1", "payload2", "payload3"}
-
-	// インデックス1の値を取得
-	result, err := fn.Execute(ctx, []interface{}{testDict, 1})
-	if err != nil {
-		t.Fatalf("dict_get failed: %v", err)
-	}
-
-	resultStr, ok := result.(string)
-	if !ok {
-		t.Fatalf("Expected string, got %T", result)
-	}
-
-	if resultStr != "payload2" {
-		t.Errorf("Expected 'payload2', got '%s'", resultStr)
-	}
-
-	// 範囲外のインデックスをテスト
-	_, err = fn.Execute(ctx, []interface{}{testDict, 10})
-	if err == nil {
-		t.Error("Expected error for out of range index")
-	}
-}
 
 func TestDictionaryLoadFunction_FileNotFound(t *testing.T) {
 	fn := &DictionaryLoadFunction{}

@@ -27,7 +27,7 @@ func TestNewClient(t *testing.T) {
 		{
 			name:      "valid client with proxy",
 			timeout:   30 * time.Second,
-			proxy:     "http://proxy.example.com:8080",
+			proxy:     "https://proxy.example.com:8080",
 			wantError: false,
 		},
 		{

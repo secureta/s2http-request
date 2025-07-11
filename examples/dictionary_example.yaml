@@ -1,8 +1,0 @@
-method: GET
-path: /api/search
-query:
-  q: !dictionary:
-    file: dictionaries/common_payloads.txt
-    key: search_terms
-variables:
-  search_terms: 0

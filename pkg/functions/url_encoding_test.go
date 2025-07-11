@@ -2,76 +2,9 @@ package functions
 
 import (
 	"context"
-	"net/url"
-	"strings"
 	"testing"
 	"unicode"
 )
-
-func TestDoubleEncodeFunction(t *testing.T) {
-	tests := []struct {
-		name      string
-		args      []interface{}
-		expected  string
-		wantError bool
-	}{
-		{
-			name:      "simple string",
-			args:      []interface{}{"hello world"},
-			expected:  url.QueryEscape(url.QueryEscape("hello world")),
-			wantError: false,
-		},
-		{
-			name:      "special characters",
-			args:      []interface{}{"' OR 1=1 --"},
-			expected:  url.QueryEscape(url.QueryEscape("' OR 1=1 --")),
-			wantError: false,
-		},
-		{
-			name:      "html tags",
-			args:      []interface{}{"<script>alert('xss')</script>"},
-			expected:  url.QueryEscape(url.QueryEscape("<script>alert('xss')</script>")),
-			wantError: false,
-		},
-		{
-			name:      "empty string",
-			args:      []interface{}{""},
-			expected:  "",
-			wantError: false,
-		},
-		{
-			name:      "wrong number of arguments",
-			args:      []interface{}{"arg1", "arg2"},
-			expected:  "",
-			wantError: true,
-		},
-		{
-			name:      "non-string argument",
-			args:      []interface{}{123},
-			expected:  "",
-			wantError: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			fn := &DoubleEncodeFunction{}
-			ctx := context.Background()
-
-			result, err := fn.Execute(ctx, tt.args)
-
-			if tt.wantError && err == nil {
-				t.Errorf("Expected error but got none")
-			}
-			if !tt.wantError && err != nil {
-				t.Errorf("Unexpected error: %v", err)
-			}
-			if !tt.wantError && result != tt.expected {
-				t.Errorf("Expected %q, got %q", tt.expected, result)
-			}
-		})
-	}
-}
 
 func TestUnicodeEncodeFunction(t *testing.T) {
 	tests := []struct {
@@ -171,9 +104,9 @@ func TestCaseVariationFunction(t *testing.T) {
 				for i, r := range inputRunes {
 					if unicode.IsLetter(r) {
 						// 文字または大文字小文字変換された文字である必要がある
-						if resultRunes[i] != r && 
-						   resultRunes[i] != unicode.ToUpper(r) && 
-						   resultRunes[i] != unicode.ToLower(r) {
+						if resultRunes[i] != r &&
+							resultRunes[i] != unicode.ToUpper(r) &&
+							resultRunes[i] != unicode.ToLower(r) {
 							return false
 						}
 					} else {
@@ -294,13 +227,6 @@ func TestCaseVariationFunctionRandomness(t *testing.T) {
 	}
 }
 
-func TestDoubleEncodeFunctionName(t *testing.T) {
-	fn := &DoubleEncodeFunction{}
-	if fn.Name() != "double_encode" {
-		t.Errorf("Expected function name 'double_encode', got %q", fn.Name())
-	}
-}
-
 func TestUnicodeEncodeFunctionName(t *testing.T) {
 	fn := &UnicodeEncodeFunction{}
 	if fn.Name() != "unicode_encode" {
@@ -312,54 +238,5 @@ func TestCaseVariationFunctionName(t *testing.T) {
 	fn := &CaseVariationFunction{}
 	if fn.Name() != "case_variation" {
 		t.Errorf("Expected function name 'case_variation', got %q", fn.Name())
-	}
-}
-
-// WAF回避テスト用の実際のペイロードをテスト
-func TestWAFFunctionWithRealPayloads(t *testing.T) {
-	ctx := context.Background()
-
-	// SQLインジェクションペイロード
-	sqlPayload := "' OR 1=1 --"
-	
-	// 二重エンコーディングテスト
-	doubleEncodeFn := &DoubleEncodeFunction{}
-	doubleEncoded, err := doubleEncodeFn.Execute(ctx, []interface{}{sqlPayload})
-	if err != nil {
-		t.Fatalf("Double encode failed: %v", err)
-	}
-	
-	// 結果が元の文字列と異なることを確認
-	if doubleEncoded == sqlPayload {
-		t.Errorf("Double encoding should change the payload")
-	}
-
-	// XSSペイロード
-	xssPayload := "<script>alert('xss')</script>こんにちは"
-	
-	// Unicodeエンコーディングテスト
-	unicodeEncodeFn := &UnicodeEncodeFunction{}
-	unicodeEncoded, err := unicodeEncodeFn.Execute(ctx, []interface{}{xssPayload})
-	if err != nil {
-		t.Fatalf("Unicode encode failed: %v", err)
-	}
-	
-	// 特殊文字が含まれていることを確認
-	unicodeStr := unicodeEncoded.(string)
-	if !strings.Contains(unicodeStr, "\\u") {
-		t.Errorf("Unicode encoding should contain \\u sequences for special characters")
-	}
-
-	// 大文字小文字変換テスト
-	adminPayload := "admin"
-	caseVarFn := &CaseVariationFunction{}
-	caseVaried, err := caseVarFn.Execute(ctx, []interface{}{adminPayload})
-	if err != nil {
-		t.Fatalf("Case variation failed: %v", err)
-	}
-	
-	// 結果が文字列であることを確認
-	if _, ok := caseVaried.(string); !ok {
-		t.Errorf("Case variation should return a string")
 	}
 }

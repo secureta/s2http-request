@@ -14,7 +14,7 @@ func (f *TimestampFunction) Name() string {
 }
 
 func (f *TimestampFunction) Signature() string {
-	return "!timestamp"
+	return "$timestamp"
 }
 
 func (f *TimestampFunction) Description() string {
@@ -37,7 +37,7 @@ func (f *DateFunction) Name() string {
 }
 
 func (f *DateFunction) Signature() string {
-	return "!date [format]"
+	return "$date [format]"
 }
 
 func (f *DateFunction) Description() string {
@@ -70,7 +70,7 @@ func (f *TimeFunction) Name() string {
 }
 
 func (f *TimeFunction) Signature() string {
-	return "!time [format]"
+	return "$time [format]"
 }
 
 func (f *TimeFunction) Description() string {
