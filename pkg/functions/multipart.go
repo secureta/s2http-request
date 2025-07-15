@@ -15,26 +15,43 @@ func (f *MultipartFunction) Name() string {
 }
 
 func (f *MultipartFunction) Signature() string {
-	return "$multipart <value> <boundary>"
+	return "$multipart {values: <map>, boundary: <string>}"
 }
 
 func (f *MultipartFunction) Description() string {
-	return "マップをmultipart/form-dataフォーマットに変換します。boundaryパラメータが必要です"
+	return "マップをmultipart/form-dataフォーマットに変換します。{values: <map>, boundary: <string>}の形式で指定します"
 }
 
 func (f *MultipartFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
-	if len(args) != 2 {
-		return nil, fmt.Errorf("multipart function expects 2 arguments, got %d", len(args))
+	if len(args) != 1 {
+		return nil, fmt.Errorf("multipart function expects 1 argument, got %d", len(args))
 	}
 
-	input, ok := args[0].(map[string]interface{})
+	config, ok := args[0].(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("multipart function expects map[string]interface{} as first argument")
+		return nil, fmt.Errorf("multipart function expects map[string]interface{} as argument")
 	}
 
-	boundary, ok := args[1].(string)
+	// valuesフィールドを取得
+	valuesInterface, ok := config["values"]
 	if !ok {
-		return nil, fmt.Errorf("multipart function expects string as boundary parameter")
+		return nil, fmt.Errorf("multipart function requires 'values' field")
+	}
+
+	values, ok := valuesInterface.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("multipart function expects 'values' to be map[string]interface{}")
+	}
+
+	// boundaryフィールドを取得
+	boundaryInterface, ok := config["boundary"]
+	if !ok {
+		return nil, fmt.Errorf("multipart function requires 'boundary' field")
+	}
+
+	boundary, ok := boundaryInterface.(string)
+	if !ok {
+		return nil, fmt.Errorf("multipart function expects 'boundary' to be string")
 	}
 
 	var buf bytes.Buffer
@@ -45,7 +62,7 @@ func (f *MultipartFunction) Execute(_ context.Context, args []interface{}) (inte
 		return nil, fmt.Errorf("multipart function failed to set boundary: %w", err)
 	}
 
-	for key, value := range input {
+	for key, value := range values {
 		if value != nil {
 			field, err := writer.CreateFormField(key)
 			if err != nil {

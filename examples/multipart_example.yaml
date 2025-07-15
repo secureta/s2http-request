@@ -1,10 +1,18 @@
 method: POST
 path: /upload
 headers:
-  Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+  Content-Type:
+    $join:
+      values:
+        - multipart/form-data; boundary=
+        - $var: boundary
 body:
   $multipart:
-    - name: John Doe
+    values:
+      name: John Doe
       email: john@example.com
       description: Test user
-    - ----WebKitFormBoundary7MA4YWxkTrZu0gW
+    boundary:
+      $var: boundary
+variables:
+  boundary: ----WebKitFormBoundary7MA4YWxkTrZu0gW

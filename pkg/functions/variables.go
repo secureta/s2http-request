@@ -86,19 +86,30 @@ func (f *JoinFunction) Description() string {
 }
 
 func (f *JoinFunction) Execute(_ context.Context, args []interface{}) (interface{}, error) {
-	if len(args) == 0 {
-		return nil, fmt.Errorf("join function expects at least 1 argument (values), got 0")
+	if len(args) != 1 {
+		return nil, fmt.Errorf("join function expects 1 argument, got %d", len(args))
+	}
+
+	config, ok := args[0].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("join function expects map[string]interface{} as argument")
+	}
+
+	// valuesフィールドを取得
+	valuesInterface, ok := config["values"]
+	if !ok {
+		return nil, fmt.Errorf("join function requires 'values' field")
 	}
 
 	// デフォルトの区切り文字は空文字
 	delimiter := ""
 
-	// 引数が2つある場合、2番目は区切り文字
-	if len(args) > 1 {
+	// delimiterフィールドがある場合は取得
+	if delimiterInterface, exists := config["delimiter"]; exists {
 		var ok bool
-		delimiter, ok = args[1].(string)
+		delimiter, ok = delimiterInterface.(string)
 		if !ok {
-			return nil, fmt.Errorf("join function expects string delimiter as second argument")
+			return nil, fmt.Errorf("join function expects 'delimiter' to be string")
 		}
 	}
 
@@ -106,7 +117,7 @@ func (f *JoinFunction) Execute(_ context.Context, args []interface{}) (interface
 	var strValues []string
 
 	// 配列の型に応じて処理
-	switch values := args[0].(type) {
+	switch values := valuesInterface.(type) {
 	case []interface{}:
 		for _, v := range values {
 			strValues = append(strValues, fmt.Sprintf("%v", v))
@@ -117,7 +128,7 @@ func (f *JoinFunction) Execute(_ context.Context, args []interface{}) (interface
 		// 単一の文字列の場合はそのまま返す
 		return values, nil
 	default:
-		return nil, fmt.Errorf("join function expects array of values as first argument")
+		return nil, fmt.Errorf("join function expects array of values in 'values' field")
 	}
 
 	return strings.Join(strValues, delimiter), nil

@@ -116,38 +116,53 @@ func TestJoinFunction(t *testing.T) {
 		wantError bool
 	}{
 		{
-			name:      "array with no delimiter",
-			args:      []interface{}{[]interface{}{"a", "b", "c"}},
+			name: "array with no delimiter",
+			args: []interface{}{map[string]interface{}{
+				"values": []interface{}{"a", "b", "c"},
+			}},
 			expected:  "abc",
 			wantError: false,
 		},
 		{
-			name:      "array with comma delimiter",
-			args:      []interface{}{[]interface{}{"a", "b", "c"}, ","},
+			name: "array with comma delimiter",
+			args: []interface{}{map[string]interface{}{
+				"values":    []interface{}{"a", "b", "c"},
+				"delimiter": ",",
+			}},
 			expected:  "a,b,c",
 			wantError: false,
 		},
 		{
-			name:      "array with space delimiter",
-			args:      []interface{}{[]interface{}{"hello", "world"}, " "},
+			name: "array with space delimiter",
+			args: []interface{}{map[string]interface{}{
+				"values":    []interface{}{"hello", "world"},
+				"delimiter": " ",
+			}},
 			expected:  "hello world",
 			wantError: false,
 		},
 		{
-			name:      "string array with delimiter",
-			args:      []interface{}{[]string{"x", "y", "z"}, "-"},
+			name: "string array with delimiter",
+			args: []interface{}{map[string]interface{}{
+				"values":    []string{"x", "y", "z"},
+				"delimiter": "-",
+			}},
 			expected:  "x-y-z",
 			wantError: false,
 		},
 		{
-			name:      "single string value",
-			args:      []interface{}{"single"},
+			name: "single string value",
+			args: []interface{}{map[string]interface{}{
+				"values": "single",
+			}},
 			expected:  "single",
 			wantError: false,
 		},
 		{
-			name:      "empty array",
-			args:      []interface{}{[]interface{}{}},
+			name: "empty array",
+			args: []interface{}{map[string]interface{}{
+				"values": []interface{}{},
+			}},
 			expected:  "",
 			wantError: false,
 		},
@@ -158,13 +173,32 @@ func TestJoinFunction(t *testing.T) {
 			wantError: true,
 		},
 		{
-			name:      "non-string delimiter",
-			args:      []interface{}{[]interface{}{"a", "b"}, 123},
+			name: "non-string delimiter",
+			args: []interface{}{map[string]interface{}{
+				"values":    []interface{}{"a", "b"},
+				"delimiter": 123,
+			}},
 			expected:  "",
 			wantError: true,
 		},
 		{
-			name:      "invalid values type",
+			name: "invalid values type",
+			args: []interface{}{map[string]interface{}{
+				"values": 123,
+			}},
+			expected:  "",
+			wantError: true,
+		},
+		{
+			name: "missing values field",
+			args: []interface{}{map[string]interface{}{
+				"delimiter": ",",
+			}},
+			expected:  "",
+			wantError: true,
+		},
+		{
+			name:      "non-map argument",
 			args:      []interface{}{123},
 			expected:  "",
 			wantError: true,
