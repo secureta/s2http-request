@@ -1,0 +1,30 @@
+# Base64 encode and decode function examples
+
+# Base64 encode example
+method: POST
+path: /api/auth
+headers:
+  Content-Type: application/json
+  Authorization:
+    $concat:
+      - "Basic "
+      - $base64_encode: "username:password"
+body:
+  $json:
+    value:
+      message:
+        $base64_encode: "Hello, World! This is a test message."
+      encoded_data:
+        $base64_encode: "sensitive information"
+
+---
+
+# Base64 decode example
+method: GET
+path: /api/decode
+query:
+  data:
+    $base64_decode: "SGVsbG8sIFdvcmxkIQ=="  # Base64 encoded "Hello, World!"
+headers:
+  X-Decoded-Header:
+    $base64_decode: "dGVzdC1oZWFkZXI="  # Base64 encoded "test-header"
