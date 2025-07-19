@@ -1,0 +1,13 @@
+# Basic hex encoding example
+method: POST
+path: /api/data
+headers:
+  Content-Type: application/json
+  X-Hex-Data:
+    $hex_encode: "custom-header-value"
+body:
+  $json:
+    value:
+      original: "hello"
+      hex_encoded:
+        $hex_encode: "hello"

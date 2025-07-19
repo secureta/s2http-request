@@ -44,6 +44,7 @@ func (r *Registry) registerBuiltinFunctions() {
 	r.functions["base64_decode"] = &Base64DecodeFunction{}
 	r.functions["html_encode"] = &HTMLEncodeFunction{}
 	r.functions["html_decode"] = &HTMLDecodeFunction{}
+	r.functions["hex_encode"] = &HexEncodeFunction{}
 
 	// ランダム生成関数
 	r.functions["random"] = &RandomFunction{}

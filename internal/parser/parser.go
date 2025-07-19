@@ -190,7 +190,27 @@ func (p *Parser) ProcessRequest(ctx context.Context, requestConfig *config.Reque
 		if err != nil {
 			return nil, fmt.Errorf("failed to process body: %w", err)
 		}
-		body = fmt.Sprintf("%v", processedBody)
+		
+		// マップ型かどうかを確認し、適切に処理
+		switch v := processedBody.(type) {
+		case map[string]interface{}:
+			// JSONに変換
+			jsonBytes, err := json.Marshal(v)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal body to JSON: %w", err)
+			}
+			body = string(jsonBytes)
+		case []interface{}:
+			// JSONに変換
+			jsonBytes, err := json.Marshal(v)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal body to JSON: %w", err)
+			}
+			body = string(jsonBytes)
+		default:
+			// その他の型はそのまま文字列化
+			body = fmt.Sprintf("%v", processedBody)
+		}
 	}
 
 	return &config.ProcessedRequest{
@@ -220,39 +240,42 @@ func (p *Parser) processMap(ctx context.Context, m map[string]interface{}) (map[
 func (p *Parser) processValue(ctx context.Context, value interface{}) (interface{}, error) {
 	switch v := value.(type) {
 	case map[string]interface{}:
-		// 関数呼び出しかチェック
-		for key, args := range v {
-			if strings.HasPrefix(key, "$") || strings.HasPrefix(key, "!") {
-				funcName := key[1:] // "$" または "!" を除去
-				fn, exists := p.registry.Get(funcName)
-				if !exists {
-					return nil, fmt.Errorf("unknown function: %s", funcName)
-				}
+		// マップに単一のキーがあり、それが関数呼び出しかどうかをチェック
+		if len(v) == 1 {
+			for key, args := range v {
+				if strings.HasPrefix(key, "$") || strings.HasPrefix(key, "!") {
+					funcName := key[1:] // "$" または "!" を除去
+					fn, exists := p.registry.Get(funcName)
+					if !exists {
+						return nil, fmt.Errorf("unknown function: %s", funcName)
+					}
 
-				// 引数を処理
-				var processedArgs []interface{}
-				switch a := args.(type) {
-				case []interface{}:
-					for _, arg := range a {
-						processedArg, err := p.processValue(ctx, arg)
+					// 引数を処理
+					var processedArgs []interface{}
+					switch a := args.(type) {
+					case []interface{}:
+						for _, arg := range a {
+							processedArg, err := p.processValue(ctx, arg)
+							if err != nil {
+								return nil, err
+							}
+							processedArgs = append(processedArgs, processedArg)
+						}
+					default:
+						processedArg, err := p.processValue(ctx, a)
 						if err != nil {
 							return nil, err
 						}
-						processedArgs = append(processedArgs, processedArg)
+						processedArgs = []interface{}{processedArg}
 					}
-				default:
-					processedArg, err := p.processValue(ctx, a)
-					if err != nil {
-						return nil, err
-					}
-					processedArgs = []interface{}{processedArg}
-				}
 
-				return fn.Execute(ctx, processedArgs)
+					// 関数を実行して結果を返す
+					return fn.Execute(ctx, processedArgs)
+				}
 			}
 		}
 
-		// 通常のマップとして処理
+		// 通常のマップとして処理（各値に対して再帰的に処理）
 		result := make(map[string]interface{})
 		for k, val := range v {
 			processedVal, err := p.processValue(ctx, val)
@@ -450,7 +473,27 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 		if err != nil {
 			return nil, fmt.Errorf("failed to process body: %w", err)
 		}
-		body = fmt.Sprintf("%v", processedBody)
+		
+		// マップ型かどうかを確認し、適切に処理
+		switch v := processedBody.(type) {
+		case map[string]interface{}:
+			// JSONに変換
+			jsonBytes, err := json.Marshal(v)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal body to JSON: %w", err)
+			}
+			body = string(jsonBytes)
+		case []interface{}:
+			// JSONに変換
+			jsonBytes, err := json.Marshal(v)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal body to JSON: %w", err)
+			}
+			body = string(jsonBytes)
+		default:
+			// その他の型はそのまま文字列化
+			body = fmt.Sprintf("%v", processedBody)
+		}
 	}
 
 	return &config.ProcessedRequest{
