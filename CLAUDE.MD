@@ -20,7 +20,7 @@ To run a single test: `go test -v -run TestFunctionName ./path/to/package`
 
 ## Architecture Overview
 
-**s2http-request** is a WAF testing tool that sends HTTP requests defined in pure JSON/YAML files with dynamic value generation via `!function` tags.
+**s2http-request** is a WAF testing tool that sends HTTP requests defined in pure JSON/YAML files with dynamic value generation via `$function` tags.
 
 ### Key Components
 
@@ -32,13 +32,13 @@ To run a single test: `go test -v -run TestFunctionName ./path/to/package`
 
 ### Function System
 
-Dynamic functions use `!function_name` tags in JSON/YAML:
-- Variable: `!var`, `!concat`, `!join`
-- Encoding: `!url_encode`, `!base64_encode`, `!html_encode`, `!hex_encode`
-- Decoding: `!url_decode`, `!base64_decode`, `!html_decode`
-- Random: `!random`, `!random_string`, `!uuid`
-- Time: `!timestamp`, `!date`, `!time`
-- Arrays: `!concat_arrays`
+Dynamic functions use `$function_name` tags in JSON/YAML:
+- Variable: `$var`, `$concat`, `$join`
+- Encoding: `$url_encode`, `$base64_encode`, `$html_encode`, `$hex_encode`
+- Decoding: `$url_decode`, `$base64_decode`, `$html_decode`
+- Random: `$random`, `$random_string`, `$uuid`
+- Time: `$timestamp`, `$date`, `$time`
+- Arrays: `$concat_arrays`
 
 New functions must:
 1. Be implemented in `pkg/functions/`

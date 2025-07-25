@@ -212,8 +212,8 @@ func (p *Parser) processValue(ctx context.Context, value interface{}) (interface
 		// マップに単一のキーがあり、それが関数呼び出しかどうかをチェック
 		if len(v) == 1 {
 			for key, args := range v {
-				if strings.HasPrefix(key, "$") || strings.HasPrefix(key, "!") {
-					funcName := key[1:] // "$" または "!" を除去
+				if strings.HasPrefix(key, "$") {
+					funcName := key[1:] // "$" を除去
 					fn, exists := p.registry.Get(funcName)
 					if !exists {
 						return nil, fmt.Errorf("unknown function: %s", funcName)

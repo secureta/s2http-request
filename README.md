@@ -40,7 +40,7 @@ s2http-request is a versatile and lightweight HTTP request dispatching tool desi
     "r": "",
     "s": null,
     "t": {
-      "!var": "malicious_key"
+      "$var": "malicious_key"
     }
   },
   "headers": {
@@ -49,14 +49,14 @@ s2http-request is a versatile and lightweight HTTP request dispatching tool desi
   "params": {
     "id": "1",
     "name": {
-      "!url_encode": "John Doe"
+      "$url_encode": "John Doe"
     }
   },
   "variables": {
     "malicious_key": {
-      "!concat": [
-        {"!var": "v"},
-        {"!var": "k"}
+      "$concat": [
+        {"$var": "v"},
+        {"$var": "k"}
       ]
     },
     "v": "1",
@@ -93,10 +93,10 @@ In JSONL format, each line is a separate JSON object. The tool will parse and ex
     },
     {
       "key": {
-        "!join": [
+        "$join": [
           ",",
-          {"!var": "v"},
-          {"!var": "k"}
+          {"$var": "v"},
+          {"$var": "k"}
         ]
       },
       "value": "v"
@@ -119,10 +119,10 @@ In JSONL format, each line is a separate JSON object. The tool will parse and ex
     },
     {
       "key": {
-        "!join": [
+        "$join": [
           ",",
-          {"!var": "v"},
-          {"!var": "k"}
+          {"$var": "v"},
+          {"$var": "k"}
         ]
       },
       "value": "v"
@@ -130,7 +130,7 @@ In JSONL format, each line is a separate JSON object. The tool will parse and ex
   ],
   "variables": {
     "v": {
-      "!random": [10]
+      "$random": [10]
     },
     "k": "2"
   }
@@ -142,30 +142,30 @@ In JSONL format, each line is a separate JSON object. The tool will parse and ex
 The tool provides a set of built-in functions for dynamic value generation.
 
 ### Variable Operations
-- `!var`: Reference a variable
-- `!concat`: Concatenate strings
-- `!join`: Join array elements
+- `$var`: Reference a variable
+- `$concat`: Concatenate strings
+- `$join`: Join array elements
 
 ### Encoding/Decoding
-- `!url_encode`: URL encode a string
-- `!url_decode`: URL decode a string
-- `!base64_encode`: Base64 encode a string
-- `!base64_decode`: Base64 decode a string
-- `!html_encode`: HTML encode a string
-- `!html_decode`: HTML decode a string
+- `$url_encode`: URL encode a string
+- `$url_decode`: URL decode a string
+- `$base64_encode`: Base64 encode a string
+- `$base64_decode`: Base64 decode a string
+- `$html_encode`: HTML encode a string
+- `$html_decode`: HTML decode a string
 
 ### Random Generation
-- `!random`: Generate a random number (0 to N-1)
-- `!random_string`: Generate a random string
-- `!uuid`: Generate a UUID
+- `$random`: Generate a random number (0 to N-1)
+- `$random_string`: Generate a random string
+- `$uuid`: Generate a UUID
 
 ### Time Functions
-- `!timestamp`: Current Unix timestamp
-- `!date`: Current date (YYYY-MM-DD)
-- `!time`: Current time (HH:MM:SS)
+- `$timestamp`: Current Unix timestamp
+- `$date`: Current date (YYYY-MM-DD)
+- `$time`: Current time (HH:MM:SS)
 
 ### Array Operations
-- `!concat_arrays`: Concatenate multiple arrays
+- `$concat_arrays`: Concatenate multiple arrays
 
 
 ## Usage
