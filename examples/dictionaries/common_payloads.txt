@@ -1,3 +1,0 @@
-payload1
-payload2
-payload3

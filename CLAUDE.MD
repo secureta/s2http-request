@@ -38,7 +38,6 @@ Dynamic functions use `!function_name` tags in JSON/YAML:
 - Decoding: `!url_decode`, `!base64_decode`, `!html_decode`
 - Random: `!random`, `!random_string`, `!uuid`
 - Time: `!timestamp`, `!date`, `!time`
-- Dictionary: `!dict_load`, `!dict_random`, `!dict_get`
 - Arrays: `!concat_arrays`
 
 New functions must:

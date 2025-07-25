@@ -25,16 +25,15 @@ type MetaConfig struct {
 
 // RequestConfig はリクエスト設定を表す構造体
 type RequestConfig struct {
-	Method     string                   `json:"method" yaml:"method"`
-	Path       string                   `json:"path" yaml:"path"`
-	Query      interface{}              `json:"query,omitempty" yaml:"query,omitempty"`
-	Headers    interface{}              `json:"headers,omitempty" yaml:"headers,omitempty"`
-	Params     interface{}              `json:"params,omitempty" yaml:"params,omitempty"`
-	Body       interface{}              `json:"body,omitempty" yaml:"body,omitempty"`
-	Variables  map[string]interface{}   `json:"variables,omitempty" yaml:"variables,omitempty"`
-	Dictionary map[string][]interface{} `json:"dictionary,omitempty" yaml:"dictionary,omitempty"`
-	Meta       *MetaConfig              `json:"meta,omitempty" yaml:"meta,omitempty"`
-	FilePath   string                   `json:"-" yaml:"-"`
+	Method    string                 `json:"method" yaml:"method"`
+	Path      string                 `json:"path" yaml:"path"`
+	Query     interface{}            `json:"query,omitempty" yaml:"query,omitempty"`
+	Headers   interface{}            `json:"headers,omitempty" yaml:"headers,omitempty"`
+	Params    interface{}            `json:"params,omitempty" yaml:"params,omitempty"`
+	Body      interface{}            `json:"body,omitempty" yaml:"body,omitempty"`
+	Variables map[string]interface{} `json:"variables,omitempty" yaml:"variables,omitempty"`
+	Meta      *MetaConfig            `json:"meta,omitempty" yaml:"meta,omitempty"`
+	FilePath  string                 `json:"-" yaml:"-"`
 }
 
 // KeyValue は配列形式のパラメータを表す構造体

@@ -8,8 +8,6 @@ A **Simple and Structured HTTP Request** dispatching tool.
 - [Features]
 - [Request Definition Format]
 - [Built-in Functions]
-- [Dictionary Feature for Fuzzing]
-- [Payload Management using Dictionary Files]
 - [Usage]
 - [Output Format]
 - [Directory Structure]
@@ -76,7 +74,7 @@ s2http-request is a versatile and lightweight HTTP request dispatching tool desi
 {"method": "POST", "path": "/api/users", "body": {"name": "John", "email": "john@example.com"}}
 ```
 
-In JSONL format, each line is a separate JSON object. The tool will use the first valid JSON object as the base request configuration and combine all objects into a dictionary for multiple requests.
+In JSONL format, each line is a separate JSON object. The tool will parse and execute the first valid JSON object found in the file.
 
 ### Array-based Parameter Definition
 
@@ -166,124 +164,9 @@ The tool provides a set of built-in functions for dynamic value generation.
 - `!date`: Current date (YYYY-MM-DD)
 - `!time`: Current time (HH:MM:SS)
 
-### Dictionary Operations
-- `!dict_load`: Load dictionary data from an external file
-- `!dict_random`: Select a random value from a dictionary
-- `!dict_get`: Get a value from a dictionary at a specified index
-
 ### Array Operations
 - `!concat_arrays`: Concatenate multiple arrays
 
-### Dictionary Feature for Fuzzing
-
-This feature allows you to define a list of values (payloads) within your request, and the dispatcher will send a separate request for each value in the list. This is particularly useful for fuzzing or iterating through different inputs.
-
-```json
-{
-  "method": "POST",
-  "path": "/test",
-  "params": {
-    "input": { "!var": "payload" }
-  },
-  "dictionary": {
-    "payload": [
-      "<script>alert(1)</script>",
-      "' OR '1'='1",
-      "; cat /etc/passwd"
-    ]
-  }
-}
-```
-
-In this example, a request will be sent for each element (3 elements) of the `payload`. You can refer to each element using `!var: payload`.
-
----
-
-## Payload Management using Dictionary Files
-
-You can load and use external dictionary files containing lists of values (e.g., common strings, test data, or attack payloads). This allows for efficient management and reuse of data across multiple requests.
-
-### Supported File Formats
-
-- **JSON**: Define payloads as an array
-- **YAML**: Define payloads as an array or map
-- **JSONL**: Each line contains a separate JSON object
-- **Text**: One payload per line (empty lines are skipped)
-
-### Example Dictionary Files
-
-```json
-// examples/dictionaries/xss_payloads.json
-[
-  "<script>alert('XSS')</script>",
-  "<img src=x onerror=alert('XSS')>",
-  "<svg onload=alert('XSS')>",
-  "javascript:alert('XSS')"
-]
-```
-
-```yaml
-# examples/dictionaries/injection_payloads.yaml
-sql_injection:
-  - "' OR '1'='1"
-  - "' OR '1'='1' --"
-  - "admin' --"
-command_injection:
-  - "; ls"
-  - "| whoami"
-  - "&& id"
-```
-
-```text
-# examples/dictionaries/common_payloads.txt
-# XSS Payloads
-<script>alert('XSS')</script>
-<img src=x onerror=alert('XSS')>
-
-# SQL Injection Payloads
-' OR '1'='1
-admin' --
-
-# Hash-based payloads (these start with # but are not comments)
-#hashtag_injection
-#social_media_payload
-```
-
-### Example Usage of Dictionary Functions
-
-```json
-{
-  "method": "POST",
-  "path": "/search",
-  "params": {
-    "query": {
-      "!dict_random": {
-        "!dict_load": "examples/dictionaries/xss_payloads.json"
-      }
-    },
-    "category": {
-      "!dict_get": [
-        {
-          "!dict_load": "examples/dictionaries/injection_payloads.yaml"
-        },
-        2
-      ]
-    }
-  },
-  "variables": {
-    "all_payloads": {
-      "!concat_arrays": [
-        {
-          "!dict_load": "examples/dictionaries/xss_payloads.json"
-        },
-        {
-          "!dict_load": "examples/dictionaries/injection_payloads.yaml"
-        }
-      ]
-    }
-  }
-}
-```
 
 ## Usage
 
@@ -421,7 +304,6 @@ s2req --proxy https://proxy.example.com:8080 request.json
 ```
 s2http-request/
 ├── examples/
-│   └── dictionaries/
 ├── internal/
 │   ├── config/
 │   ├── http/

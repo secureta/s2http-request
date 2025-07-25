@@ -62,37 +62,6 @@ func (p *Parser) ParseMultiple(data []byte, fileExt string, filePath string) ([]
 			return nil, fmt.Errorf("no valid JSON object found in JSONL file")
 		}
 
-		// Dictionaryが未初期化の場合は初期化
-		if requestConfig.Dictionary == nil {
-			requestConfig.Dictionary = make(map[string][]interface{})
-		}
-
-		// 各行をDictionaryに追加
-		for i, line := range lines {
-			line = strings.TrimSpace(line)
-			if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
-				continue // 空行やコメント行をスキップ
-			}
-
-			var lineObj map[string]interface{}
-			if err := json.Unmarshal([]byte(line), &lineObj); err != nil {
-				continue // 解析エラーの場合はスキップ
-			}
-
-			// 各フィールドをDictionaryに追加
-			for key, value := range lineObj {
-				if _, exists := requestConfig.Dictionary[key]; !exists {
-					requestConfig.Dictionary[key] = make([]interface{}, 0)
-				}
-
-				// 配列の長さを揃える
-				for len(requestConfig.Dictionary[key]) < i {
-					requestConfig.Dictionary[key] = append(requestConfig.Dictionary[key], nil)
-				}
-
-				requestConfig.Dictionary[key] = append(requestConfig.Dictionary[key], value)
-			}
-		}
 
 		requestConfig.FilePath = filePath
 		configs = append(configs, &requestConfig)
@@ -323,64 +292,20 @@ func (p *Parser) ProcessRequestsWithRequestID(ctx context.Context, requestConfig
 		requestIDConfig = cliRequestIDConfig
 	}
 
-	dict := requestConfig.Dictionary
-	if dict == nil || len(dict) == 0 {
-		// 変数をコンテキストに設定（変数を事前に処理）
-		ctxWithVars := ctx
-		if requestConfig.Variables != nil {
-			processedVars, err := p.processVariables(ctx, requestConfig.Variables)
-			if err != nil {
-				return nil, fmt.Errorf("failed to process variables: %w", err)
-			}
-			ctxWithVars = context.WithValue(ctx, "variables", processedVars)
-		}
-		pr, err := p.ProcessRequestWithRequestID(ctxWithVars, requestConfig, baseURL, requestIDConfig)
-		if err != nil {
-			return nil, err
-		}
-		return []*config.ProcessedRequest{pr}, nil
-	}
-
-	// 1つ以上のdictionaryがある場合（zip方式: 最初の配列長で回す）
-	arrLen := 0
-	for _, v := range dict {
-		arrLen = len(v)
-		break
-	}
-
-	var results []*config.ProcessedRequest
-	for i := 0; i < arrLen; i++ {
-		// 各ループで context に dictionary の i番目をセット
-		dictVars := make(map[string]interface{})
-		for k, v := range dict {
-			if i < len(v) {
-				dictVars[k] = v[i]
-			} else {
-				dictVars[k] = nil
-			}
-		}
-		// variablesもマージ
-		mergedVars := map[string]interface{}{}
-		for k, v := range requestConfig.Variables {
-			mergedVars[k] = v
-		}
-		for k, v := range dictVars {
-			mergedVars[k] = v
-		}
-
-		// 変数を事前に処理
-		processedVars, err := p.processVariables(ctx, mergedVars)
+	// 変数をコンテキストに設定（変数を事前に処理）
+	ctxWithVars := ctx
+	if requestConfig.Variables != nil {
+		processedVars, err := p.processVariables(ctx, requestConfig.Variables)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process variables: %w", err)
 		}
-		ctxWithVars := context.WithValue(ctx, "variables", processedVars)
-		pr, err := p.ProcessRequestWithRequestID(ctxWithVars, requestConfig, baseURL, requestIDConfig)
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, pr)
+		ctxWithVars = context.WithValue(ctx, "variables", processedVars)
 	}
-	return results, nil
+	pr, err := p.ProcessRequestWithRequestID(ctxWithVars, requestConfig, baseURL, requestIDConfig)
+	if err != nil {
+		return nil, err
+	}
+	return []*config.ProcessedRequest{pr}, nil
 }
 
 // ProcessRequestWithRequestID はRequest ID機能付きでリクエストを処理する
@@ -505,66 +430,22 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 	}, nil
 }
 
-// ProcessRequests はdictionaryの要素数ぶんリクエストを展開して返す
+// ProcessRequests はリクエストを処理して返す
 func (p *Parser) ProcessRequests(ctx context.Context, requestConfig *config.RequestConfig, baseURL string) ([]*config.ProcessedRequest, error) {
-	dict := requestConfig.Dictionary
-	if dict == nil || len(dict) == 0 {
-		// 変数をコンテキストに設定（変数を事前に処理）
-		ctxWithVars := ctx
-		if requestConfig.Variables != nil {
-			processedVars, err := p.processVariables(ctx, requestConfig.Variables)
-			if err != nil {
-				return nil, fmt.Errorf("failed to process variables: %w", err)
-			}
-			ctxWithVars = context.WithValue(ctx, "variables", processedVars)
-		}
-		pr, err := p.ProcessRequest(ctxWithVars, requestConfig, baseURL)
-		if err != nil {
-			return nil, err
-		}
-		return []*config.ProcessedRequest{pr}, nil
-	}
-
-	// 1つ以上のdictionaryがある場合（zip方式: 最初の配列長で回す）
-	arrLen := 0
-	for _, v := range dict {
-		arrLen = len(v)
-		break
-	}
-
-	var results []*config.ProcessedRequest
-	for i := 0; i < arrLen; i++ {
-		// 各ループで context に dictionary の i番目をセット
-		dictVars := make(map[string]interface{})
-		for k, v := range dict {
-			if i < len(v) {
-				dictVars[k] = v[i]
-			} else {
-				dictVars[k] = nil
-			}
-		}
-		// variablesもマージ
-		mergedVars := map[string]interface{}{}
-		for k, v := range requestConfig.Variables {
-			mergedVars[k] = v
-		}
-		for k, v := range dictVars {
-			mergedVars[k] = v
-		}
-
-		// 変数を事前に処理
-		processedVars, err := p.processVariables(ctx, mergedVars)
+	// 変数をコンテキストに設定（変数を事前に処理）
+	ctxWithVars := ctx
+	if requestConfig.Variables != nil {
+		processedVars, err := p.processVariables(ctx, requestConfig.Variables)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process variables: %w", err)
 		}
-		ctxWithVars := context.WithValue(ctx, "variables", processedVars)
-		pr, err := p.ProcessRequest(ctxWithVars, requestConfig, baseURL)
-		if err != nil {
-			return nil, err
-		}
-		results = append(results, pr)
+		ctxWithVars = context.WithValue(ctx, "variables", processedVars)
 	}
-	return results, nil
+	pr, err := p.ProcessRequest(ctxWithVars, requestConfig, baseURL)
+	if err != nil {
+		return nil, err
+	}
+	return []*config.ProcessedRequest{pr}, nil
 }
 
 // processVariables は変数を依存関係を考慮して処理

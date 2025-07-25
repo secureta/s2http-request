@@ -59,9 +59,6 @@ func (r *Registry) registerBuiltinFunctions() {
 	r.functions["unicode_encode"] = &UnicodeEncodeFunction{}
 	r.functions["case_variation"] = &CaseVariationFunction{}
 
-	// 辞書操作関数
-	r.functions["dict_load"] = &DictionaryLoadFunction{}
-
 	// 配列操作関数
 	r.functions["concat_arrays"] = &ConcatArraysFunction{}
 
