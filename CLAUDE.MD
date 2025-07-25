@@ -38,6 +38,7 @@ Dynamic functions use `$function_name` tags in JSON/YAML:
 - Decoding: `$url_decode`, `$base64_decode`, `$html_decode`
 - Random: `$random`, `$random_string`, `$uuid`
 - Time: `$timestamp`, `$date`, `$time`
+- File: `$file`
 - Arrays: `$concat_arrays`
 
 New functions must:

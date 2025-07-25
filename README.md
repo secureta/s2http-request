@@ -164,6 +164,9 @@ The tool provides a set of built-in functions for dynamic value generation.
 - `$date`: Current date (YYYY-MM-DD)
 - `$time`: Current time (HH:MM:SS)
 
+### File Operations
+- `$file`: Read file content as string (relative paths only)
+
 ### Array Operations
 - `$concat_arrays`: Concatenate multiple arrays
 

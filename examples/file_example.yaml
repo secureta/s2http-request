@@ -1,0 +1,20 @@
+# File function examples
+
+# Read text file content
+method: POST
+path: /api/upload
+headers:
+  Content-Type: application/json
+body:
+  message:
+    $file: "files/message.txt"
+
+---
+
+# Read image file and encode as base64
+method: POST
+path: /api/image
+body:
+  image:
+    $base64_encode:
+      $file: "files/logo.png"

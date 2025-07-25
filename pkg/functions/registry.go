@@ -62,6 +62,9 @@ func (r *Registry) registerBuiltinFunctions() {
 	// 配列操作関数
 	r.functions["concat_arrays"] = &ConcatArraysFunction{}
 
+	// ファイル操作関数
+	r.functions["file"] = &FileFunction{}
+
 	// ボディ変換関数
 	r.functions["form"] = &FormFunction{}
 	r.functions["json"] = &JSONFunction{}
