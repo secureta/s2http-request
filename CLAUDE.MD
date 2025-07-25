@@ -92,3 +92,7 @@ Requests support two formats:
 ```
 
 Variables and functions can be used anywhere in the request definition.
+
+## Testing Guidelines
+
+- When executing command tests, use Docker's httpbin for consistent and controlled HTTP testing
