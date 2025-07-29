@@ -26,7 +26,7 @@ type MetaConfig struct {
 // RequestConfig はリクエスト設定を表す構造体
 type RequestConfig struct {
 	Method    string                 `json:"method" yaml:"method"`
-	Path      string                 `json:"path" yaml:"path"`
+	Path      interface{}            `json:"path" yaml:"path"`
 	Query     interface{}            `json:"query,omitempty" yaml:"query,omitempty"`
 	Headers   interface{}            `json:"headers,omitempty" yaml:"headers,omitempty"`
 	Params    interface{}            `json:"params,omitempty" yaml:"params,omitempty"`

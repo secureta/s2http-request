@@ -108,8 +108,15 @@ func (p *Parser) Parse(data []byte, fileExt string, filePath string) (*config.Re
 
 // ProcessRequest はリクエスト設定を処理してProcessedRequestを返す
 func (p *Parser) ProcessRequest(ctx context.Context, requestConfig *config.RequestConfig, baseURL string) (*config.ProcessedRequest, error) {
+	// Pathの処理
+	processedPath, err := p.processValue(ctx, requestConfig.Path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process path: %w", err)
+	}
+	pathStr := fmt.Sprintf("%v", processedPath)
+	
 	// URLの構築
-	fullURL := baseURL + requestConfig.Path
+	fullURL := baseURL + pathStr
 
 	// コンテキストにリクエストファイルのパスを設定
 	ctx = context.WithValue(ctx, "requestFilePath", requestConfig.FilePath)
@@ -294,12 +301,31 @@ func (p *Parser) ProcessRequestsWithRequestID(ctx context.Context, requestConfig
 
 	// 変数をコンテキストに設定（変数を事前に処理）
 	ctxWithVars := ctx
+	var finalVars map[string]interface{}
+	
+	// CLI変数を取得
+	cliVars, hasCLIVars := ctx.Value("variables").(map[string]interface{})
+	
 	if requestConfig.Variables != nil {
 		processedVars, err := p.processVariables(ctx, requestConfig.Variables)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process variables: %w", err)
 		}
-		ctxWithVars = context.WithValue(ctx, "variables", processedVars)
+		finalVars = processedVars
+	} else {
+		finalVars = make(map[string]interface{})
+	}
+	
+	// CLI変数でファイル変数を上書き（CLI変数が優先）
+	if hasCLIVars {
+		for key, value := range cliVars {
+			finalVars[key] = value
+		}
+	}
+	
+	// 最終的な変数をコンテキストに設定
+	if len(finalVars) > 0 {
+		ctxWithVars = context.WithValue(ctx, "variables", finalVars)
 	}
 	pr, err := p.ProcessRequestWithRequestID(ctxWithVars, requestConfig, baseURL, requestIDConfig)
 	if err != nil {
@@ -316,14 +342,21 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 		requestID = uuid.New().String()
 	}
 
+	// Pathの処理
+	processedPath, err := p.processValue(ctx, requestConfig.Path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process path: %w", err)
+	}
+	pathStr := fmt.Sprintf("%v", processedPath)
+	
 	// URLの構築
-	fullURL := baseURL + requestConfig.Path
+	fullURL := baseURL + pathStr
 
 	// Request IDをパスに追加
 	if requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationPathHead {
-		fullURL = baseURL + "/" + requestID + requestConfig.Path
+		fullURL = baseURL + "/" + requestID + pathStr
 	} else if requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationPathTail {
-		fullURL = baseURL + requestConfig.Path + "/" + requestID
+		fullURL = baseURL + pathStr + "/" + requestID
 	}
 
 	// コンテキストにリクエストファイルのパスを設定
@@ -434,12 +467,31 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 func (p *Parser) ProcessRequests(ctx context.Context, requestConfig *config.RequestConfig, baseURL string) ([]*config.ProcessedRequest, error) {
 	// 変数をコンテキストに設定（変数を事前に処理）
 	ctxWithVars := ctx
+	var finalVars map[string]interface{}
+	
+	// CLI変数を取得
+	cliVars, hasCLIVars := ctx.Value("variables").(map[string]interface{})
+	
 	if requestConfig.Variables != nil {
 		processedVars, err := p.processVariables(ctx, requestConfig.Variables)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process variables: %w", err)
 		}
-		ctxWithVars = context.WithValue(ctx, "variables", processedVars)
+		finalVars = processedVars
+	} else {
+		finalVars = make(map[string]interface{})
+	}
+	
+	// CLI変数でファイル変数を上書き（CLI変数が優先）
+	if hasCLIVars {
+		for key, value := range cliVars {
+			finalVars[key] = value
+		}
+	}
+	
+	// 最終的な変数をコンテキストに設定
+	if len(finalVars) > 0 {
+		ctxWithVars = context.WithValue(ctx, "variables", finalVars)
 	}
 	pr, err := p.ProcessRequest(ctxWithVars, requestConfig, baseURL)
 	if err != nil {

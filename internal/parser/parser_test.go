@@ -504,3 +504,187 @@ func TestMapToQueryString(t *testing.T) {
 		})
 	}
 }
+
+func TestVariableOverride(t *testing.T) {
+	tests := []struct {
+		name         string
+		requestData  string
+		cliVariables map[string]interface{}
+		expectedURL  string
+		expectedBody string
+	}{
+		{
+			name: "CLI variable overrides file variable",
+			requestData: `{
+				"method": "GET",
+				"path": {
+					"$concat": ["/api/users/", {"$var": "id"}]
+				},
+				"variables": {
+					"id": "1"
+				}
+			}`,
+			cliVariables: map[string]interface{}{
+				"id": "123",
+			},
+			expectedURL: "http://localhost/api/users/123",
+		},
+		{
+			name: "CLI variable used when file variable doesn't exist",
+			requestData: `{
+				"method": "GET",
+				"path": {
+					"$concat": ["/api/users/", {"$var": "id"}]
+				}
+			}`,
+			cliVariables: map[string]interface{}{
+				"id": "456",
+			},
+			expectedURL: "http://localhost/api/users/456",
+		},
+		{
+			name: "Multiple CLI variables",
+			requestData: `{
+				"method": "POST",
+				"path": {
+					"$concat": ["/api/", {"$var": "resource"}]
+				},
+				"params": {
+					"user_id": {"$var": "user_id"},
+					"name": {"$var": "name"}
+				},
+				"variables": {
+					"resource": "default",
+					"user_id": "1",
+					"name": "default_name"
+				}
+			}`,
+			cliVariables: map[string]interface{}{
+				"resource": "users",
+				"user_id":  789,
+				"name":     "test_user",
+			},
+			expectedURL:  "http://localhost/api/users",
+			expectedBody: "name=test_user&user_id=789",
+		},
+		{
+			name: "CLI variables with complex JSON values",
+			requestData: `{
+				"method": "POST",
+				"path": "/api/test",
+				"body": {
+					"config": {"$var": "config"},
+					"items": {"$var": "items"}
+				}
+			}`,
+			cliVariables: map[string]interface{}{
+				"config": map[string]interface{}{
+					"enabled": true,
+					"timeout": float64(30),
+				},
+				"items": []interface{}{
+					"item1", "item2", "item3",
+				},
+			},
+			expectedURL:  "http://localhost/api/test",
+			expectedBody: `{"config":{"enabled":true,"timeout":30},"items":["item1","item2","item3"]}`,
+		},
+		{
+			name: "File variable used when CLI variable not provided",
+			requestData: `{
+				"method": "GET",
+				"path": {
+					"$concat": ["/api/users/", {"$var": "id"}]
+				},
+				"variables": {
+					"id": "default_id"
+				}
+			}`,
+			cliVariables: map[string]interface{}{},
+			expectedURL:  "http://localhost/api/users/default_id",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := NewParser()
+
+			// Parse the request configuration
+			requestConfig, err := parser.Parse([]byte(tt.requestData), ".json", "test.json")
+			if err != nil {
+				t.Fatalf("Failed to parse request config: %v", err)
+			}
+
+			// Create context with CLI variables
+			ctx := context.Background()
+			if len(tt.cliVariables) > 0 {
+				ctx = context.WithValue(ctx, "variables", tt.cliVariables)
+			}
+
+			// Process the request
+			processedRequests, err := parser.ProcessRequestsWithRequestID(ctx, requestConfig, "http://localhost", nil)
+			if err != nil {
+				t.Fatalf("Failed to process request: %v", err)
+			}
+
+			if len(processedRequests) != 1 {
+				t.Fatalf("Expected 1 processed request, got %d", len(processedRequests))
+			}
+
+			result := processedRequests[0]
+
+			// Check URL
+			if result.URL != tt.expectedURL {
+				t.Errorf("Expected URL %s, got %s", tt.expectedURL, result.URL)
+			}
+
+			// Check body if expected
+			if tt.expectedBody != "" {
+				if result.Body != tt.expectedBody {
+					t.Errorf("Expected body %s, got %s", tt.expectedBody, result.Body)
+				}
+			}
+		})
+	}
+}
+
+func TestVariableOverrideWithProcessRequests(t *testing.T) {
+	// Test the ProcessRequests method as well to ensure both code paths work
+	requestData := `{
+		"method": "GET",
+		"path": {
+			"$concat": ["/api/users/", {"$var": "id"}]
+		},
+		"variables": {
+			"id": "file_value"
+		}
+	}`
+
+	parser := NewParser()
+	requestConfig, err := parser.Parse([]byte(requestData), ".json", "test.json")
+	if err != nil {
+		t.Fatalf("Failed to parse request config: %v", err)
+	}
+
+	// Test with CLI variables
+	cliVariables := map[string]interface{}{
+		"id": "cli_value",
+	}
+	ctx := context.WithValue(context.Background(), "variables", cliVariables)
+
+	processedRequests, err := parser.ProcessRequests(ctx, requestConfig, "http://localhost")
+	if err != nil {
+		t.Fatalf("Failed to process request: %v", err)
+	}
+
+	if len(processedRequests) != 1 {
+		t.Fatalf("Expected 1 processed request, got %d", len(processedRequests))
+	}
+
+	result := processedRequests[0]
+	expectedURL := "http://localhost/api/users/cli_value"
+
+	if result.URL != expectedURL {
+		t.Errorf("Expected URL %s, got %s", expectedURL, result.URL)
+	}
+}

@@ -8,6 +8,7 @@ A **Simple and Structured HTTP Request** dispatching tool.
 - [Features]
 - [Request Definition Format]
 - [Built-in Functions]
+- [Variable Overrides]
 - [Usage]
 - [Output Format]
 - [Directory Structure]
@@ -170,6 +171,64 @@ The tool provides a set of built-in functions for dynamic value generation.
 ### Array Operations
 - `$concat_arrays`: Concatenate multiple arrays
 
+## Variable Overrides
+
+You can override variables defined in request files using the `--var` command-line flag. This is particularly useful for:
+
+- Testing with different parameter values without modifying request files
+- Environment-specific configurations
+- Dynamic testing scenarios
+
+### Variable Override Syntax
+
+```bash
+# Override single variable
+s2req --var key=value request.yaml
+
+# Override multiple variables
+s2req --var user_id=123 --var type=admin --var limit=50 request.yaml
+
+# Override with JSON values (arrays, objects, booleans, numbers)
+s2req --var 'ids=[1,2,3]' request.yaml
+s2req --var 'config={"enabled":true,"timeout":30}' request.yaml
+s2req --var 'active=true' request.yaml
+s2req --var 'count=42' request.yaml
+```
+
+### Variable Override Priority
+
+CLI variables take precedence over file-defined variables:
+
+```yaml
+# request.yaml
+method: GET
+path:
+  $concat:
+    - "/api/users/"
+    - $var: user_id
+variables:
+  user_id: "default_user"
+```
+
+```bash
+# This will override the file variable
+s2req --var user_id=123 request.yaml
+# Result: GET /api/users/123
+
+# Without override
+s2req request.yaml  
+# Result: GET /api/users/default_user
+```
+
+### Supported Value Types
+
+The `--var` flag automatically detects and parses different value types:
+
+- **Strings**: `--var name=John` → `"John"`
+- **Numbers**: `--var count=42` → `42`, `--var rate=3.14` → `3.14`
+- **Booleans**: `--var enabled=true` → `true`, `--var disabled=false` → `false`
+- **JSON Arrays**: `--var 'items=[1,2,3]'` → `[1,2,3]`
+- **JSON Objects**: `--var 'config={"key":"value"}'` → `{"key":"value"}`
 
 ## Usage
 
@@ -260,6 +319,12 @@ s2req --retry 3 request.json
 
 # Use proxy
 s2req --proxy https://proxy.example.com:8080 request.json
+
+# Override variables from command line
+s2req --var user_id=123 --var type=admin request.yaml
+
+# Override with JSON values
+s2req --var 'ids=[1,2,3]' --var 'config={"enabled":true}' request.yaml
 ```
 
 ## Output Format
