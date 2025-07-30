@@ -564,10 +564,150 @@ func generateCartesianProduct(keys []string, arrays map[string][]interface{}, in
 	return allCombinations
 }
 
+func handleValidateCommand() {
+	// Create a new flag set for the validate subcommand
+	validateCmd := flag.NewFlagSet("validate", flag.ExitOnError)
+	
+	var (
+		verbose     = validateCmd.Bool("verbose", false, "Verbose output")
+		showVersion = validateCmd.Bool("version", false, "Show version")
+	)
+	
+	// Parse arguments starting from position 2 (after "validate")
+	validateCmd.Parse(os.Args[2:])
+	
+	if *showVersion {
+		fmt.Printf("s2req version %s\n", version)
+		return
+	}
+	
+	files := validateCmd.Args()
+	
+	// Check if we should read from stdin
+	readFromStdin := len(files) == 0 || (len(files) == 1 && files[0] == "-")
+	
+	if !readFromStdin && len(files) == 0 {
+		fmt.Fprintf(os.Stderr, "Usage: %s validate [options] <request-file>... or provide input via stdin\n", os.Args[0])
+		validateCmd.PrintDefaults()
+		os.Exit(1)
+	}
+	
+	// パーサーの作成
+	p := parser.NewParser()
+	
+	var validationErrors []ValidationError
+	totalFiles := 0
+	
+	if readFromStdin {
+		// Validate stdin input
+		err := validateStdinInput(p, *verbose)
+		if err != nil {
+			validationErrors = append(validationErrors, ValidationError{
+				File:  "stdin",
+				Error: err,
+			})
+		}
+		totalFiles = 1
+	} else {
+		// Validate each file
+		for _, filePath := range files {
+			totalFiles++
+			err := validateFile(p, filePath, *verbose)
+			if err != nil {
+				validationErrors = append(validationErrors, ValidationError{
+					File:  filePath,
+					Error: err,
+				})
+			}
+		}
+	}
+	
+	// Report results
+	if len(validationErrors) == 0 {
+		if *verbose {
+			fmt.Printf("✓ All %d file(s) are valid\n", totalFiles)
+		} else {
+			fmt.Println("✓ Valid")
+		}
+		os.Exit(0)
+	} else {
+		fmt.Fprintf(os.Stderr, "✗ Found %d validation error(s) in %d file(s):\n", len(validationErrors), totalFiles)
+		for _, ve := range validationErrors {
+			fmt.Fprintf(os.Stderr, "  %s: %v\n", ve.File, ve.Error)
+		}
+		os.Exit(1)
+	}
+}
+
+type ValidationError struct {
+	File  string
+	Error error
+}
+
+func validateFile(p *parser.Parser, filePath string, verbose bool) error {
+	if verbose {
+		fmt.Printf("Validating %s...\n", filePath)
+	}
+	
+	// Read the file
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+	
+	// Get file extension for format detection
+	ext := filepath.Ext(filePath)
+	
+	// Parse the file
+	_, err = p.ParseMultiple(data, ext, filePath)
+	if err != nil {
+		return fmt.Errorf("parsing failed: %w", err)
+	}
+	
+	if verbose {
+		fmt.Printf("  ✓ %s is valid\n", filePath)
+	}
+	
+	return nil
+}
+
+func validateStdinInput(p *parser.Parser, verbose bool) error {
+	if verbose {
+		fmt.Println("Validating stdin input...")
+	}
+	
+	// Read from stdin
+	data, err := io.ReadAll(os.Stdin)
+	if err != nil {
+		return fmt.Errorf("failed to read from stdin: %w", err)
+	}
+	
+	// Detect format
+	format := detectFormat(data)
+	
+	// Parse the input
+	_, err = p.ParseMultiple(data, format, "stdin")
+	if err != nil {
+		return fmt.Errorf("parsing failed: %w", err)
+	}
+	
+	if verbose {
+		fmt.Println("  ✓ stdin input is valid")
+	}
+	
+	return nil
+}
+
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "generate" {
 		// Handle generate subcommand
 		handleGenerateCommand()
+		return
+	}
+	
+	if len(os.Args) > 1 && os.Args[1] == "validate" {
+		// Handle validate subcommand
+		handleValidateCommand()
 		return
 	}
 
