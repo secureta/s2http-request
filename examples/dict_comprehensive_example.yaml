@@ -1,0 +1,82 @@
+# Comprehensive Dict Example
+# This example demonstrates all dict functionality features in a single configuration
+
+method: POST
+path: /api/comprehensive-test
+headers:
+  Content-Type: application/json
+  Authorization:
+    $var: auth_token
+  X-API-Version:
+    $dict: api_version
+  X-Request-ID:
+    $uuid: {}
+  X-Timestamp:
+    $timestamp: {}
+query:
+  environment:
+    $var: environment
+  test_mode:
+    $dict: test_mode
+  batch_size:
+    $dict: batch_size
+body:
+  # Dict variables in nested structures
+  user:
+    id:
+      $dict: user_id
+    type:
+      $dict: user_type
+    preferences:
+      theme:
+        $dict: theme_preference
+      notifications:
+        $dict: notification_setting
+  
+  # Mixed with regular variables and functions
+  metadata:
+    environment:
+      $var: environment
+    request_id:
+      $uuid: {}
+    timestamp:
+      $timestamp: {}
+    encoded_data:
+      $base64_encode:
+        value:
+          $dict: sample_data
+  
+  # Array with dict variables
+  tags:
+    - $dict: primary_tag
+    - $dict: secondary_tag
+    - "static-tag"
+
+# Regular variables (resolved once)
+variables:
+  auth_token: "Bearer comprehensive-test-token"
+  environment: "testing"
+
+# Dict variables (create combinations)
+# Total combinations: 2 * 2 * 3 * 3 * 2 * 2 * 2 * 2 * 2 = 1152 requests
+dict:
+  api_version: ["v1", "v2"]
+  test_mode: ["true", "false"]
+  batch_size: [10, 50, 100]
+  user_id: ["user-001", "user-002", "user-003"]
+  user_type: ["admin", "regular"]
+  theme_preference: ["light", "dark"]
+  notification_setting: ["enabled", "disabled"]
+  sample_data: ["sample1", "sample2"]
+  primary_tag: ["important", "normal"]
+  secondary_tag: ["urgent", "standard"]
+
+# This comprehensive example demonstrates:
+# 1. Dict variables in headers, query parameters, and body
+# 2. Nested object structures with dict references
+# 3. Arrays containing dict variables
+# 4. Mixing dict variables with regular variables ($var)
+# 5. Combining dict variables with dynamic functions ($uuid, $timestamp)
+# 6. Using dict variables with encoding functions ($base64_encode)
+# 7. Large number of combinations (1152 total requests)
+# 8. Complex data structures that maintain consistency across combinations

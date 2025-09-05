@@ -36,14 +36,14 @@ func (v varFlags) Set(value string) error {
 	if len(parts) != 2 {
 		return fmt.Errorf("invalid format, expected 'key=value'")
 	}
-	
+
 	key := strings.TrimSpace(parts[0])
 	val := strings.TrimSpace(parts[1])
-	
+
 	if key == "" {
 		return fmt.Errorf("variable key cannot be empty")
 	}
-	
+
 	// Try to parse the value as JSON first for complex values
 	var parsedValue interface{}
 	if err := json.Unmarshal([]byte(val), &parsedValue); err == nil {
@@ -61,7 +61,7 @@ func (v varFlags) Set(value string) error {
 			v[key] = val
 		}
 	}
-	
+
 	return nil
 }
 
@@ -138,9 +138,9 @@ func processStdin(p *parser.Parser, client *http.Client, cliConfig *config.CLICo
 		if len(variables) > 0 {
 			ctx = context.WithValue(ctx, "variables", variables)
 		}
-		
+
 		// Process requests with Request ID
-		processedRequests, err := p.ProcessRequestsWithRequestID(ctx, requestConfig, cliConfig.Host, cliConfig.RequestID)
+		processedRequests, err := p.ProcessRequestsWithConfig(ctx, requestConfig, cliConfig.Host, cliConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process requests: %w", err)
 		}
@@ -238,56 +238,62 @@ func detectFormat(data []byte) string {
 func handleGenerateCommand() {
 	// Create a new flag set for the generate subcommand
 	generateCmd := flag.NewFlagSet("generate", flag.ExitOnError)
-	
+
 	var (
-		output        = generateCmd.String("output", "", "Output file path")
-		format       = generateCmd.String("format", "yaml", "Output format (yaml, json, jsonl)")
-		showVersion  = generateCmd.Bool("version", false, "Show version")
-		vars         = make(varFlags)
+		output          = generateCmd.String("output", "", "Output file path")
+		format          = generateCmd.String("format", "yaml", "Output format (yaml, json, jsonl)")
+		maxCombinations = generateCmd.Int("max-combinations", 1000, "Maximum number of dict combinations to generate")
+		showVersion     = generateCmd.Bool("version", false, "Show version")
+		vars            = make(varFlags)
 	)
-	
+
 	generateCmd.Var(&vars, "var", "Override variable value (key=value). Can be specified multiple times.")
-	
+
 	// Parse arguments starting from position 2 (after "generate")
 	generateCmd.Parse(os.Args[2:])
-	
+
 	if *showVersion {
 		fmt.Printf("s2req version %s\n", version)
 		return
 	}
-	
+
+	// Validate MaxCombinations
+	if *maxCombinations <= 0 {
+		log.Fatalf("max-combinations must be greater than 0, got %d", *maxCombinations)
+	}
+
 	files := generateCmd.Args()
-	
+
 	// Check if we should read from stdin
 	readFromStdin := len(files) == 0 || (len(files) == 1 && files[0] == "-")
-	
+
 	if !readFromStdin && len(files) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: %s generate [options] <request-file>... or provide input via stdin\n", os.Args[0])
 		generateCmd.PrintDefaults()
 		os.Exit(1)
 	}
-	
+
 	// パーサーの作成
 	p := parser.NewParser()
-	
+
 	var generatedRequests []*config.RequestConfig
-	
+
 	if readFromStdin {
 		// Process stdin input
 		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			log.Fatalf("Failed to read from stdin: %v", err)
 		}
-		
+
 		// Detect the format of the input
 		fileFormat := detectFormat(data)
-		
+
 		// Parse the input
 		requestConfigs, err := p.ParseMultiple(data, fileFormat, "stdin")
 		if err != nil {
 			log.Fatalf("Failed to parse stdin input: %v", err)
 		}
-		
+
 		generatedRequests = append(generatedRequests, requestConfigs...)
 	} else {
 		// 各ファイルを処理
@@ -298,26 +304,26 @@ func handleGenerateCommand() {
 				log.Printf("Failed to read file %s: %v", filePath, err)
 				continue
 			}
-			
+
 			// ファイル拡張子の取得
 			ext := filepath.Ext(filePath)
-			
+
 			// リクエスト設定の解析（複数のドキュメントに対応）
 			requestConfigs, err := p.ParseMultiple(data, ext, filePath)
 			if err != nil {
 				log.Printf("Failed to parse request config in %s: %v", filePath, err)
 				continue
 			}
-			
+
 			generatedRequests = append(generatedRequests, requestConfigs...)
 		}
 	}
-	
+
 	// Generate all variable combinations and process requests
 	variableCombinations := generateVariableCombinations(map[string]interface{}(vars))
-	
+
 	processedRequests := make([]*config.RequestConfig, 0, len(generatedRequests)*len(variableCombinations))
-	
+
 	for _, requestConfig := range generatedRequests {
 		for _, variableSet := range variableCombinations {
 			// Create context with this specific variable combination
@@ -325,22 +331,22 @@ func handleGenerateCommand() {
 			if len(variableSet) > 0 {
 				ctx = context.WithValue(ctx, "variables", variableSet)
 			}
-			
+
 			// Process the request to resolve all variables and functions
-			processedRequest, err := processRequestForGenerate(ctx, p, requestConfig)
+			processedRequestList, err := processRequestForGenerate(ctx, p, requestConfig, *maxCombinations)
 			if err != nil {
 				log.Printf("Failed to process request: %v", err)
 				continue
 			}
-			
-			processedRequests = append(processedRequests, processedRequest)
+
+			processedRequests = append(processedRequests, processedRequestList...)
 		}
 	}
-	
+
 	// Output the generated requests
 	var output_data []byte
 	var err error
-	
+
 	switch *format {
 	case "json":
 		output_data, err = json.MarshalIndent(processedRequests, "", "  ")
@@ -395,11 +401,11 @@ func handleGenerateCommand() {
 			output_data = []byte(yamlOutput.String())
 		}
 	}
-	
+
 	if err != nil {
 		log.Fatalf("Failed to format output: %v", err)
 	}
-	
+
 	if *output != "" {
 		err = os.WriteFile(*output, output_data, 0644)
 		if err != nil {
@@ -410,57 +416,61 @@ func handleGenerateCommand() {
 	}
 }
 
-func processRequestForGenerate(ctx context.Context, p *parser.Parser, requestConfig *config.RequestConfig) (*config.RequestConfig, error) {
-	// Use the existing ProcessRequestsWithRequestID method to handle the variable processing
-	// This method already handles variable overrides correctly
-	processedRequests, err := p.ProcessRequestsWithRequestID(ctx, requestConfig, "", nil)
+func processRequestForGenerate(ctx context.Context, p *parser.Parser, requestConfig *config.RequestConfig, maxCombinations int) ([]*config.RequestConfig, error) {
+	// Create a minimal CLIConfig for the generate command
+	cliConfig := &config.CLIConfig{
+		MaxCombinations: maxCombinations,
+	}
+
+	// Use the new ProcessRequestsWithConfig method to handle dict combinations
+	processedRequests, err := p.ProcessRequestsWithConfig(ctx, requestConfig, "", cliConfig)
 	if err != nil {
 		return nil, err
 	}
-	
-	if len(processedRequests) != 1 {
-		return nil, fmt.Errorf("expected 1 processed request, got %d", len(processedRequests))
-	}
-	
-	processedRequest := processedRequests[0]
-	
-	// Convert back to RequestConfig format for output
-	// Parse the URL to extract path and query parts
-	parsedURL, err := url.Parse(processedRequest.URL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse processed URL: %w", err)
-	}
-	
-	// Create the processed config
-	processedConfig := &config.RequestConfig{
-		Method:   processedRequest.Method,
-		Path:     parsedURL.Path,
-		Headers:  convertHeadersToInterface(processedRequest.Headers),
-		Body:     convertBodyToInterface(processedRequest.Body),
-		FilePath: requestConfig.FilePath,
-	}
-	
-	// Convert query parameters back to interface{}
-	if len(parsedURL.RawQuery) > 0 {
-		queryParams := make(map[string]interface{})
-		for key, values := range parsedURL.Query() {
-			if len(values) == 1 {
-				queryParams[key] = values[0]
-			} else {
-				queryParams[key] = values
-			}
+
+	var result []*config.RequestConfig
+
+	// Convert each processed request back to RequestConfig format
+	for _, processedRequest := range processedRequests {
+		// Parse the URL to extract path and query parts
+		parsedURL, err := url.Parse(processedRequest.URL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse processed URL: %w", err)
 		}
-		processedConfig.Query = queryParams
+
+		// Create the processed config
+		processedConfig := &config.RequestConfig{
+			Method:   processedRequest.Method,
+			Path:     parsedURL.Path,
+			Headers:  convertHeadersToInterface(processedRequest.Headers),
+			Body:     convertBodyToInterface(processedRequest.Body),
+			FilePath: requestConfig.FilePath,
+		}
+
+		// Convert query parameters back to interface{}
+		if len(parsedURL.RawQuery) > 0 {
+			queryParams := make(map[string]interface{})
+			for key, values := range parsedURL.Query() {
+				if len(values) == 1 {
+					queryParams[key] = values[0]
+				} else {
+					queryParams[key] = values
+				}
+			}
+			processedConfig.Query = queryParams
+		}
+
+		result = append(result, processedConfig)
 	}
-	
-	return processedConfig, nil
+
+	return result, nil
 }
 
 func convertHeadersToInterface(headers map[string]string) interface{} {
 	if len(headers) == 0 {
 		return nil
 	}
-	
+
 	result := make(map[string]interface{})
 	for k, v := range headers {
 		result[k] = v
@@ -472,13 +482,13 @@ func convertBodyToInterface(body string) interface{} {
 	if body == "" {
 		return nil
 	}
-	
+
 	// Try to parse as JSON first
 	var jsonObj interface{}
 	if err := json.Unmarshal([]byte(body), &jsonObj); err == nil {
 		return jsonObj
 	}
-	
+
 	// Return as string if not JSON
 	return body
 }
@@ -489,11 +499,11 @@ func generateVariableCombinations(vars map[string]interface{}) []map[string]inte
 	if len(vars) == 0 {
 		return []map[string]interface{}{make(map[string]interface{})}
 	}
-	
+
 	// Separate array variables from scalar variables
 	arrayVars := make(map[string][]interface{})
 	scalarVars := make(map[string]interface{})
-	
+
 	for key, value := range vars {
 		if arr, ok := value.([]interface{}); ok {
 			arrayVars[key] = arr
@@ -501,38 +511,38 @@ func generateVariableCombinations(vars map[string]interface{}) []map[string]inte
 			scalarVars[key] = value
 		}
 	}
-	
+
 	// If no array variables, return single combination
 	if len(arrayVars) == 0 {
 		return []map[string]interface{}{vars}
 	}
-	
+
 	// Generate cartesian product of array variables
 	arrayKeys := make([]string, 0, len(arrayVars))
 	for key := range arrayVars {
 		arrayKeys = append(arrayKeys, key)
 	}
-	
+
 	combinations := generateCartesianProduct(arrayKeys, arrayVars, 0, make(map[string]interface{}))
-	
+
 	// Add scalar variables to each combination
 	result := make([]map[string]interface{}, 0, len(combinations))
 	for _, combination := range combinations {
 		finalCombination := make(map[string]interface{})
-		
+
 		// Add scalar variables
 		for key, value := range scalarVars {
 			finalCombination[key] = value
 		}
-		
+
 		// Add array variable values for this combination
 		for key, value := range combination {
 			finalCombination[key] = value
 		}
-		
+
 		result = append(result, finalCombination)
 	}
-	
+
 	return result
 }
 
@@ -546,58 +556,58 @@ func generateCartesianProduct(keys []string, arrays map[string][]interface{}, in
 		}
 		return []map[string]interface{}{result}
 	}
-	
+
 	key := keys[index]
 	array := arrays[key]
-	
+
 	var allCombinations []map[string]interface{}
-	
+
 	for _, value := range array {
 		// Set current key to this value
 		current[key] = value
-		
+
 		// Recursively generate combinations for remaining keys
 		combinations := generateCartesianProduct(keys, arrays, index+1, current)
 		allCombinations = append(allCombinations, combinations...)
 	}
-	
+
 	return allCombinations
 }
 
 func handleValidateCommand() {
 	// Create a new flag set for the validate subcommand
 	validateCmd := flag.NewFlagSet("validate", flag.ExitOnError)
-	
+
 	var (
 		verbose     = validateCmd.Bool("verbose", false, "Verbose output")
 		showVersion = validateCmd.Bool("version", false, "Show version")
 	)
-	
+
 	// Parse arguments starting from position 2 (after "validate")
 	validateCmd.Parse(os.Args[2:])
-	
+
 	if *showVersion {
 		fmt.Printf("s2req version %s\n", version)
 		return
 	}
-	
+
 	files := validateCmd.Args()
-	
+
 	// Check if we should read from stdin
 	readFromStdin := len(files) == 0 || (len(files) == 1 && files[0] == "-")
-	
+
 	if !readFromStdin && len(files) == 0 {
 		fmt.Fprintf(os.Stderr, "Usage: %s validate [options] <request-file>... or provide input via stdin\n", os.Args[0])
 		validateCmd.PrintDefaults()
 		os.Exit(1)
 	}
-	
+
 	// パーサーの作成
 	p := parser.NewParser()
-	
+
 	var validationErrors []ValidationError
 	totalFiles := 0
-	
+
 	if readFromStdin {
 		// Validate stdin input
 		err := validateStdinInput(p, *verbose)
@@ -621,7 +631,7 @@ func handleValidateCommand() {
 			}
 		}
 	}
-	
+
 	// Report results
 	if len(validationErrors) == 0 {
 		if *verbose {
@@ -648,26 +658,26 @@ func validateFile(p *parser.Parser, filePath string, verbose bool) error {
 	if verbose {
 		fmt.Printf("Validating %s...\n", filePath)
 	}
-	
+
 	// Read the file
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
-	
+
 	// Get file extension for format detection
 	ext := filepath.Ext(filePath)
-	
+
 	// Parse the file
 	_, err = p.ParseMultiple(data, ext, filePath)
 	if err != nil {
 		return fmt.Errorf("parsing failed: %w", err)
 	}
-	
+
 	if verbose {
 		fmt.Printf("  ✓ %s is valid\n", filePath)
 	}
-	
+
 	return nil
 }
 
@@ -675,26 +685,26 @@ func validateStdinInput(p *parser.Parser, verbose bool) error {
 	if verbose {
 		fmt.Println("Validating stdin input...")
 	}
-	
+
 	// Read from stdin
 	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("failed to read from stdin: %w", err)
 	}
-	
+
 	// Detect format
 	format := detectFormat(data)
-	
+
 	// Parse the input
 	_, err = p.ParseMultiple(data, format, "stdin")
 	if err != nil {
 		return fmt.Errorf("parsing failed: %w", err)
 	}
-	
+
 	if verbose {
 		fmt.Println("  ✓ stdin input is valid")
 	}
-	
+
 	return nil
 }
 
@@ -704,7 +714,7 @@ func main() {
 		handleGenerateCommand()
 		return
 	}
-	
+
 	if len(os.Args) > 1 && os.Args[1] == "validate" {
 		// Handle validate subcommand
 		handleValidateCommand()
@@ -713,16 +723,17 @@ func main() {
 
 	// Handle main command (no variable override support)
 	var (
-		host      = flag.String("host", "http://localhost", "Target host URL")
-		timeout   = flag.Duration("timeout", 30*time.Second, "Request timeout")
-		retry     = flag.Int("retry", 0, "Number of retries")
-		proxy     = flag.String("proxy", "", "Proxy URL")
-		verbose   = flag.Bool("verbose", false, "Verbose output")
-		output    = flag.String("output", "", "Output file path")
-		format    = flag.String("format", "json", "Output format (json, csv, table)")
-		userAgent = flag.String("user-agent", "", "Override User-Agent header")
-		requestID = flag.String("request-id", "", "Enable Request ID (path=head|tail, query=<key>, header=<key>)")
-		showVersion = flag.Bool("version", false, "Show version")
+		host            = flag.String("host", "http://localhost", "Target host URL")
+		timeout         = flag.Duration("timeout", 30*time.Second, "Request timeout")
+		retry           = flag.Int("retry", 0, "Number of retries")
+		proxy           = flag.String("proxy", "", "Proxy URL")
+		verbose         = flag.Bool("verbose", false, "Verbose output")
+		output          = flag.String("output", "", "Output file path")
+		format          = flag.String("format", "json", "Output format (json, csv, table)")
+		userAgent       = flag.String("user-agent", "", "Override User-Agent header")
+		requestID       = flag.String("request-id", "", "Enable Request ID (path=head|tail, query=<key>, header=<key>)")
+		maxCombinations = flag.Int("max-combinations", 1000, "Maximum number of dict combinations to generate")
+		showVersion     = flag.Bool("version", false, "Show version")
 	)
 
 	flag.Parse()
@@ -730,6 +741,11 @@ func main() {
 	if *showVersion {
 		fmt.Printf("s2req version %s\n", version)
 		return
+	}
+
+	// Validate MaxCombinations
+	if *maxCombinations <= 0 {
+		log.Fatalf("max-combinations must be greater than 0, got %d", *maxCombinations)
 	}
 
 	files := flag.Args()
@@ -755,15 +771,16 @@ func main() {
 
 	// CLI設定の作成
 	cliConfig := &config.CLIConfig{
-		Host:      *host,
-		Timeout:   *timeout,
-		Retry:     *retry,
-		Proxy:     *proxy,
-		Verbose:   *verbose,
-		Output:    *output,
-		Format:    config.OutputFormat(*format),
-		Files:     files,
-		RequestID: requestIDConfig,
+		Host:            *host,
+		Timeout:         *timeout,
+		Retry:           *retry,
+		Proxy:           *proxy,
+		Verbose:         *verbose,
+		Output:          *output,
+		Format:          config.OutputFormat(*format),
+		Files:           files,
+		RequestID:       requestIDConfig,
+		MaxCombinations: *maxCombinations,
 	}
 
 	// If reading from stdin, update the Files field
@@ -832,9 +849,9 @@ func processFile(p *parser.Parser, client *http.Client, cliConfig *config.CLICon
 		if len(variables) > 0 {
 			ctx = context.WithValue(ctx, "variables", variables)
 		}
-		
+
 		// リクエストの処理（辞書展開を含む）
-		processedRequests, err := p.ProcessRequestsWithRequestID(ctx, requestConfig, cliConfig.Host, cliConfig.RequestID)
+		processedRequests, err := p.ProcessRequestsWithConfig(ctx, requestConfig, cliConfig.Host, cliConfig)
 		if err != nil {
 			return nil, fmt.Errorf("failed to process requests: %w", err)
 		}

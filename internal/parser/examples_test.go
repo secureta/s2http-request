@@ -27,6 +27,11 @@ func TestParseExamples(t *testing.T) {
 			continue
 		}
 
+		// Skip documentation files
+		if strings.HasSuffix(fileName, ".md") {
+			continue
+		}
+
 		t.Run(fileName, func(t *testing.T) {
 			data, err := os.ReadFile(filePath)
 			if err != nil {

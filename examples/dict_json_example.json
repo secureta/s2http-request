@@ -1,0 +1,22 @@
+{
+  "method": "GET",
+  "path": "/api/search",
+  "headers": {
+    "Accept": "application/json",
+    "User-Agent": {"$var": "user_agent"}
+  },
+  "query": {
+    "q": {"$dict": "search_term"},
+    "category": {"$dict": "category"},
+    "limit": {"$dict": "result_limit"},
+    "sort": "relevance"
+  },
+  "variables": {
+    "user_agent": "s2req/1.0"
+  },
+  "dict": {
+    "search_term": ["golang", "http", "api"],
+    "category": ["tutorials", "documentation"],
+    "result_limit": [10, 25, 50]
+  }
+}

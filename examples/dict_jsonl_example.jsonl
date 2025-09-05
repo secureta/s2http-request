@@ -1,0 +1,3 @@
+{"method": "POST", "path": "/api/users", "body": {"name": {"$dict": "user_name"}, "status": {"$dict": "user_status"}}, "dict": {"user_name": ["Alice", "Bob"], "user_status": ["active", "inactive"]}}
+{"method": "GET", "path": "/api/products", "query": {"category": {"$dict": "product_category"}}, "dict": {"product_category": ["electronics", "books", "clothing"]}}
+{"method": "DELETE", "path": "/api/cache", "headers": {"X-Force": {"$dict": "force_delete"}}, "dict": {"force_delete": ["true", "false"]}}

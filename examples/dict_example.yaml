@@ -1,0 +1,45 @@
+# Dict Example - Multiple Payload Patterns
+# This example demonstrates the dict functionality for generating multiple request variations
+# from a single configuration file using array-based variables.
+
+method: POST
+path: /api/users
+headers:
+  Content-Type: application/json
+  Authorization:
+    $var: auth_token
+query:
+  format: json
+  include:
+    $dict: include_fields
+body:
+  name:
+    $dict: user_name
+  age:
+    $dict: user_age
+  department:
+    $var: department
+  role:
+    $dict: user_role
+
+# Regular variables (resolved once per configuration)
+variables:
+  auth_token: "Bearer abc123xyz"
+  department: "engineering"
+
+# Dict variables (generate combinations)
+# This will create 2 * 3 * 2 * 2 = 24 different request combinations
+dict:
+  user_name: ["Alice", "Bob"]
+  user_age: [25, 30, 35]
+  user_role: ["developer", "senior"]
+  include_fields: ["profile", "settings"]
+
+# Expected output: 24 requests with all possible combinations of:
+# - user_name: Alice or Bob
+# - user_age: 25, 30, or 35  
+# - user_role: developer or senior
+# - include_fields: profile or settings
+# 
+# Each request will have the same auth_token and department values
+# but different combinations of the dict variables.

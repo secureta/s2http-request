@@ -1,0 +1,53 @@
+# Dict with Mixed Functions Example
+# Demonstrates dict functionality working alongside other built-in functions
+
+method: POST
+path: /api/data
+headers:
+  Content-Type: application/json
+  Authorization:
+    $var: auth_header
+  X-Request-ID:
+    $uuid: {}
+  X-Timestamp:
+    $timestamp: {}
+query:
+  format: json
+  version:
+    $dict: api_version
+body:
+  data:
+    user_id:
+      $dict: user_id
+    action:
+      $dict: action_type
+    payload:
+      $base64_encode:
+        value:
+          $dict: payload_data
+    metadata:
+      request_id:
+        $uuid: {}
+      created_at:
+        $timestamp: {}
+      environment:
+        $var: environment
+
+variables:
+  auth_header: "Bearer token123"
+  environment: "production"
+
+dict:
+  api_version: ["v1", "v2"]
+  user_id: ["user-001", "user-002"]
+  action_type: ["create", "update", "delete"]
+  payload_data: ["test-data-1", "test-data-2"]
+
+# This example demonstrates:
+# 1. Dict variables mixed with regular variables ($var)
+# 2. Dict variables used with encoding functions ($base64_encode)
+# 3. Dynamic functions ($uuid, $timestamp) generating unique values per request
+# 4. Complex nested structures with multiple function types
+# 
+# Total combinations: 2 * 2 * 3 * 2 = 24 requests
+# Each request will have unique UUIDs and timestamps due to the dynamic functions

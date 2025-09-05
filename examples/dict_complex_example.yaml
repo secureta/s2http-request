@@ -1,0 +1,55 @@
+# Complex Dict Example - Advanced Patterns
+# This example shows more complex usage patterns of the dict functionality
+
+method: POST
+path: /api/orders
+headers:
+  Content-Type: application/json
+  X-API-Version:
+    $dict: api_version
+  X-Client-ID:
+    $var: client_id
+query:
+  priority:
+    $dict: priority_level
+  notification:
+    $dict: notify_customer
+body:
+  product:
+    id:
+      $dict: product_id
+    category:
+      $dict: product_category
+    quantity:
+      $dict: order_quantity
+  customer:
+    type:
+      $dict: customer_type
+    region:
+      $var: default_region
+  metadata:
+    source: "api"
+    timestamp:
+      $timestamp: {}
+
+# Regular variables
+variables:
+  client_id: "client-12345"
+  default_region: "us-west-2"
+
+# Dict variables for comprehensive testing
+# This creates 2 * 3 * 2 * 3 * 2 * 2 * 2 = 288 combinations
+dict:
+  api_version: ["v1", "v2"]
+  priority_level: ["low", "medium", "high"]
+  notify_customer: ["true", "false"]
+  product_id: ["prod-001", "prod-002", "prod-003"]
+  product_category: ["electronics", "books"]
+  order_quantity: [1, 5]
+  customer_type: ["premium", "standard"]
+
+# This example demonstrates:
+# 1. Dict variables in headers, query, and nested body structures
+# 2. Mixing dict variables with regular variables and functions
+# 3. Complex nested object structures with dict references
+# 4. Large number of combinations (288 total requests)

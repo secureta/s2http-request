@@ -34,6 +34,7 @@ func NewRegistry() *Registry {
 func (r *Registry) registerBuiltinFunctions() {
 	// 変数操作関数
 	r.functions["var"] = &VarFunction{}
+	r.functions["dict"] = &DictFunction{}
 	r.functions["concat"] = &ConcatFunction{}
 	r.functions["join"] = &JoinFunction{}
 

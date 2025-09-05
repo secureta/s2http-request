@@ -1,0 +1,22 @@
+# Simple Dict Example
+# Basic demonstration of dict functionality with minimal configuration
+
+method: GET
+path: /api/users
+query:
+  id:
+    $dict: user_id
+  status:
+    $dict: user_status
+
+dict:
+  user_id: ["123", "456", "789"]
+  user_status: ["active", "inactive"]
+
+# This configuration will generate 3 * 2 = 6 requests:
+# 1. GET /api/users?id=123&status=active
+# 2. GET /api/users?id=123&status=inactive  
+# 3. GET /api/users?id=456&status=active
+# 4. GET /api/users?id=456&status=inactive
+# 5. GET /api/users?id=789&status=active
+# 6. GET /api/users?id=789&status=inactive
