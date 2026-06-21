@@ -3,6 +3,7 @@ package http
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -156,6 +157,10 @@ func NewClient(timeout time.Duration, proxy string) (*Client, error) {
 
 // SendRequest はHTTPリクエストを送信
 func (c *Client) SendRequest(ctx context.Context, processedRequest *config.ProcessedRequest) (responseData *config.ResponseData, err error) {
+	if processedRequest.RawRequestTarget != "" {
+		return c.sendRawRequestTargetRequest(ctx, processedRequest)
+	}
+
 	// タイミング測定用
 	startTime := time.Now()
 	var dnsTime, connectTime, sslTime, sendTime, waitTime, receiveTime time.Duration
@@ -228,6 +233,153 @@ func (c *Client) SendRequest(ctx context.Context, processedRequest *config.Proce
 	return responseData, nil
 }
 
+func (c *Client) sendRawRequestTargetRequest(ctx context.Context, processedRequest *config.ProcessedRequest) (responseData *config.ResponseData, err error) {
+	startTime := time.Now()
+	scheme, host, hostname, err := parseRawRequestOrigin(processedRequest.URL)
+	if err != nil {
+		return nil, err
+	}
+	if scheme != "http" && scheme != "https" {
+		return nil, fmt.Errorf("unsupported URL scheme for raw request target: %s", scheme)
+	}
+	dialHost := host
+	if !strings.Contains(host, ":") {
+		if scheme == "https" {
+			dialHost += ":443"
+		} else {
+			dialHost += ":80"
+		}
+	}
+
+	dialer := &net.Dialer{Timeout: c.timeout}
+	var conn net.Conn
+	if scheme == "https" {
+		conn, err = tls.DialWithDialer(dialer, "tcp", dialHost, &tls.Config{ServerName: hostname})
+	} else {
+		conn, err = dialer.DialContext(ctx, "tcp", dialHost)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to dial: %w", err)
+	}
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close connection: %w", closeErr)
+		}
+	}()
+	if deadline, ok := ctx.Deadline(); ok {
+		_ = conn.SetDeadline(deadline)
+	} else if c.timeout > 0 {
+		_ = conn.SetDeadline(time.Now().Add(c.timeout))
+	}
+
+	body := processedRequest.Body
+	requestLine := fmt.Sprintf("%s %s HTTP/1.1\r\n", processedRequest.Method, processedRequest.RawRequestTarget)
+	hostHeader := host
+	if override, ok := getHeader(processedRequest.Headers, "Host"); ok {
+		hostHeader = override
+	}
+	headers := fmt.Sprintf("Host: %s\r\n", hostHeader)
+	for key, value := range processedRequest.Headers {
+		if strings.EqualFold(key, "Host") {
+			continue
+		}
+		headers += fmt.Sprintf("%s: %s\r\n", key, value)
+	}
+	if body != "" && !hasHeader(processedRequest.Headers, "Content-Length") {
+		headers += fmt.Sprintf("Content-Length: %d\r\n", len(body))
+	}
+	if !hasHeader(processedRequest.Headers, "Connection") {
+		headers += "Connection: close\r\n"
+	}
+
+	fullRequest := requestLine + headers + "\r\n" + body
+	sendStart := time.Now()
+	if _, err = conn.Write([]byte(fullRequest)); err != nil {
+		return nil, fmt.Errorf("failed to write request: %w", err)
+	}
+	sendTime := time.Since(sendStart)
+
+	reader := bufio.NewReader(conn)
+	dummyReq := &http.Request{Method: processedRequest.Method}
+	waitStart := time.Now()
+	resp, err := http.ReadResponse(reader, dummyReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close response body: %w", closeErr)
+		}
+	}()
+	waitTime := time.Since(waitStart)
+
+	receiveStart := time.Now()
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	receiveTime := time.Since(receiveStart)
+	totalTime := time.Since(startTime)
+
+	return &config.ResponseData{
+		StatusCode: resp.StatusCode,
+		Headers:    resp.Header,
+		Body:       string(bodyBytes),
+		Time: config.ResponseTiming{
+			Total:   totalTime.Seconds(),
+			Send:    sendTime.Seconds(),
+			Wait:    waitTime.Seconds(),
+			Receive: receiveTime.Seconds(),
+		},
+	}, nil
+}
+
+func parseRawRequestOrigin(rawURL string) (scheme, host, hostname string, err error) {
+	parsedURL, parseErr := url.Parse(rawURL)
+	if parseErr == nil {
+		return parsedURL.Scheme, parsedURL.Host, parsedURL.Hostname(), nil
+	}
+
+	schemeEnd := strings.Index(rawURL, "://")
+	if schemeEnd < 0 {
+		return "", "", "", fmt.Errorf("failed to parse URL origin: %w", parseErr)
+	}
+	scheme = strings.ToLower(rawURL[:schemeEnd])
+	rest := rawURL[schemeEnd+3:]
+	hostEnd := strings.IndexAny(rest, "/?")
+	if hostEnd >= 0 {
+		host = rest[:hostEnd]
+	} else {
+		host = rest
+	}
+	if host == "" {
+		return "", "", "", fmt.Errorf("failed to parse URL origin: empty host")
+	}
+	hostname = host
+	if splitHost, _, splitErr := net.SplitHostPort(host); splitErr == nil {
+		hostname = splitHost
+	} else if strings.HasPrefix(host, "[") && strings.Contains(host, "]") {
+		hostname = strings.Trim(host[:strings.Index(host, "]")+1], "[]")
+	} else if colon := strings.LastIndex(host, ":"); colon >= 0 && strings.Count(host, ":") == 1 {
+		hostname = host[:colon]
+	}
+	return scheme, host, hostname, nil
+}
+
+func getHeader(headers map[string]string, name string) (string, bool) {
+	for key, value := range headers {
+		if strings.EqualFold(key, name) {
+			return value, true
+		}
+	}
+	return "", false
+}
+
+func hasHeader(headers map[string]string, name string) bool {
+	_, ok := getHeader(headers, name)
+	return ok
+}
+
 // SendRequestWithRetry はリトライ機能付きでHTTPリクエストを送信
 func (c *Client) SendRequestWithRetry(ctx context.Context, processedRequest *config.ProcessedRequest, maxRetries int) (*config.ResponseData, error) {
 	var lastErr error
@@ -254,7 +406,6 @@ func (c *Client) SendRequestWithRetry(ctx context.Context, processedRequest *con
 		} else {
 			return response, nil
 		}
-
 
 		// コンテキストがキャンセルされた場合はリトライしない
 		if ctx.Err() != nil {

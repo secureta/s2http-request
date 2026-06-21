@@ -45,11 +45,12 @@ type KeyValue struct {
 
 // ProcessedRequest は処理済みリクエストを表す構造体
 type ProcessedRequest struct {
-	Method    string
-	URL       string
-	Headers   map[string]string
-	Body      string
-	RequestID string // Request IDを追加
+	Method           string
+	URL              string
+	RawRequestTarget string
+	Headers          map[string]string
+	Body             string
+	RequestID        string // Request IDを追加
 }
 
 // ResponseTiming はレスポンス時間の詳細を表す構造体

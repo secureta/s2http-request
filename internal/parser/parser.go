@@ -120,17 +120,53 @@ func (p *Parser) Parse(data []byte, fileExt string, filePath string) (*config.Re
 	return configs[0], nil
 }
 
+func (p *Parser) processPath(ctx context.Context, value interface{}) (path string, raw bool, err error) {
+	if pathMap, ok := value.(map[string]interface{}); ok {
+		rawValue, hasRaw := pathMap["raw"]
+		valueValue, hasValue := pathMap["value"]
+		if hasRaw || hasValue {
+			if !hasValue {
+				return "", false, fmt.Errorf("path.value is required when path is an object")
+			}
+			processedPath, err := p.processValue(ctx, valueValue)
+			if err != nil {
+				return "", false, err
+			}
+			switch v := rawValue.(type) {
+			case bool:
+				raw = v
+			case string:
+				raw = strings.EqualFold(v, "true")
+			case nil:
+				raw = false
+			default:
+				return "", false, fmt.Errorf("path.raw must be a boolean")
+			}
+			return fmt.Sprintf("%v", processedPath), raw, nil
+		}
+	}
+
+	processedPath, err := p.processValue(ctx, value)
+	if err != nil {
+		return "", false, err
+	}
+	return fmt.Sprintf("%v", processedPath), false, nil
+}
+
 // ProcessRequest はリクエスト設定を処理してProcessedRequestを返す
 func (p *Parser) ProcessRequest(ctx context.Context, requestConfig *config.RequestConfig, baseURL string) (*config.ProcessedRequest, error) {
 	// Pathの処理
-	processedPath, err := p.processValue(ctx, requestConfig.Path)
+	pathStr, rawPath, err := p.processPath(ctx, requestConfig.Path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to process path: %w", err)
 	}
-	pathStr := fmt.Sprintf("%v", processedPath)
 
 	// URLの構築
 	fullURL := baseURL + pathStr
+	rawRequestTarget := ""
+	if rawPath {
+		rawRequestTarget = pathStr
+	}
 
 	// コンテキストにリクエストファイルのパスを設定
 	ctx = context.WithValue(ctx, "requestFilePath", requestConfig.FilePath)
@@ -146,6 +182,9 @@ func (p *Parser) ProcessRequest(ctx context.Context, requestConfig *config.Reque
 				queryString := p.mapToQueryString(processedQuery)
 				if queryString != "" {
 					fullURL += "?" + queryString
+					if rawPath {
+						rawRequestTarget += "?" + queryString
+					}
 				}
 			}
 		}
@@ -204,10 +243,11 @@ func (p *Parser) ProcessRequest(ctx context.Context, requestConfig *config.Reque
 	}
 
 	return &config.ProcessedRequest{
-		Method:  requestConfig.Method,
-		URL:     fullURL,
-		Headers: headers,
-		Body:    body,
+		Method:           requestConfig.Method,
+		URL:              fullURL,
+		RawRequestTarget: rawRequestTarget,
+		Headers:          headers,
+		Body:             body,
 	}, nil
 }
 
@@ -541,19 +581,22 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 	}
 
 	// Pathの処理
-	processedPath, err := p.processValue(ctx, requestConfig.Path)
+	pathStr, rawPath, err := p.processPath(ctx, requestConfig.Path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to process path: %w", err)
 	}
-	pathStr := fmt.Sprintf("%v", processedPath)
 
 	// URLの構築
 	fullURL := baseURL + pathStr
+	rawRequestTarget := ""
+	if rawPath {
+		rawRequestTarget = pathStr
+	}
 
 	// Request IDをパスに追加
-	if requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationPathHead {
+	if !rawPath && requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationPathHead {
 		fullURL = baseURL + "/" + requestID + pathStr
-	} else if requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationPathTail {
+	} else if !rawPath && requestIDConfig != nil && requestIDConfig.Location == config.RequestIDLocationPathTail {
 		fullURL = baseURL + pathStr + "/" + requestID
 	}
 
@@ -584,6 +627,9 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 			queryString := p.mapToQueryString(processedQuery)
 			if queryString != "" {
 				fullURL += "?" + queryString
+				if rawPath {
+					rawRequestTarget += "?" + queryString
+				}
 			}
 		}
 	}
@@ -653,11 +699,12 @@ func (p *Parser) ProcessRequestWithRequestID(ctx context.Context, requestConfig 
 	}
 
 	return &config.ProcessedRequest{
-		Method:    requestConfig.Method,
-		URL:       fullURL,
-		Headers:   headers,
-		Body:      body,
-		RequestID: requestID,
+		Method:           requestConfig.Method,
+		URL:              fullURL,
+		RawRequestTarget: rawRequestTarget,
+		Headers:          headers,
+		Body:             body,
+		RequestID:        requestID,
 	}, nil
 }
 

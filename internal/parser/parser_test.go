@@ -412,6 +412,28 @@ func TestProcessRequest(t *testing.T) {
 			},
 			wantError: false,
 		},
+		{
+			name: "raw path preserves path bytes while query stays separate",
+			config: &config.RequestConfig{
+				Method: "GET",
+				Path: map[string]interface{}{
+					"value": "/%%32%65",
+					"raw":   true,
+				},
+				Query: map[string]interface{}{
+					"x": "1+1",
+				},
+			},
+			baseURL: "https://waf.example.com",
+			expected: &config.ProcessedRequest{
+				Method:           "GET",
+				URL:              "https://waf.example.com/%%32%65?x=1%2B1",
+				RawRequestTarget: "/%%32%65?x=1%2B1",
+				Headers:          map[string]string{},
+				Body:             "",
+			},
+			wantError: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -433,6 +455,9 @@ func TestProcessRequest(t *testing.T) {
 				}
 				if result.URL != tt.expected.URL {
 					t.Errorf("Expected URL %s, got %s", tt.expected.URL, result.URL)
+				}
+				if result.RawRequestTarget != tt.expected.RawRequestTarget {
+					t.Errorf("Expected raw request target %s, got %s", tt.expected.RawRequestTarget, result.RawRequestTarget)
 				}
 				// For body comparison, check if it contains the expected parameters regardless of order
 				if tt.expected.Body != "" {
