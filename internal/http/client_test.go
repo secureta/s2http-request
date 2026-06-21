@@ -1,7 +1,9 @@
 package http
 
 import (
+	"bufio"
 	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -177,6 +179,118 @@ func TestSendRequest(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestSendRequestWithRawRequestTargetWritesExactRequestLine(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer listener.Close()
+
+	requestLineCh := make(chan string, 1)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		reader := bufio.NewReader(conn)
+		line, err := reader.ReadString('\n')
+		if err == nil {
+			requestLineCh <- strings.TrimRight(line, "\r\n")
+		}
+		for {
+			line, err := reader.ReadString('\n')
+			if err != nil || line == "\r\n" {
+				break
+			}
+		}
+		_, _ = conn.Write([]byte("HTTP/1.1 204 No Content\r\nContent-Length: 0\r\n\r\n"))
+	}()
+
+	client, err := NewClient(5*time.Second, "")
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	response, err := client.SendRequest(context.Background(), &config.ProcessedRequest{
+		Method:           "GET",
+		URL:              "http://" + listener.Addr().String() + "/%%32%65?x=1%2B1&x=2",
+		RawRequestTarget: "/%%32%65?x=1%2B1&x=2",
+		Headers:          map[string]string{"X-Test": "raw"},
+	})
+	if err != nil {
+		t.Fatalf("SendRequest returned error: %v", err)
+	}
+	if response.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected 204, got %d", response.StatusCode)
+	}
+
+	select {
+	case got := <-requestLineCh:
+		want := "GET /%%32%65?x=1%2B1&x=2 HTTP/1.1"
+		if got != want {
+			t.Fatalf("Expected request line %q, got %q", want, got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for raw request line")
+	}
+	<-done
+}
+
+func TestSendRequestWithRawRequestTargetAllowsHostHeaderOverride(t *testing.T) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v", err)
+	}
+	defer listener.Close()
+
+	hostHeaderCh := make(chan string, 1)
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		reader := bufio.NewReader(conn)
+		_, _ = reader.ReadString('\n')
+		for {
+			line, err := reader.ReadString('\n')
+			if err != nil || line == "\r\n" {
+				break
+			}
+			if strings.HasPrefix(strings.ToLower(line), "host:") {
+				hostHeaderCh <- strings.TrimSpace(strings.TrimPrefix(line, "Host:"))
+			}
+		}
+		_, _ = conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n"))
+	}()
+
+	client, err := NewClient(5*time.Second, "")
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+	_, err = client.SendRequest(context.Background(), &config.ProcessedRequest{
+		Method:           "GET",
+		URL:              "http://" + listener.Addr().String() + "/raw",
+		RawRequestTarget: "/raw",
+		Headers:          map[string]string{"Host": "tenant.example.test"},
+	})
+	if err != nil {
+		t.Fatalf("SendRequest returned error: %v", err)
+	}
+
+	select {
+	case got := <-hostHeaderCh:
+		if got != "tenant.example.test" {
+			t.Fatalf("Expected Host override %q, got %q", "tenant.example.test", got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for Host header")
 	}
 }
 

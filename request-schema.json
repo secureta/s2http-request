@@ -109,8 +109,30 @@
     },
     "path": {
       "default": "/",
-      "description": "Request path",
-      "type": "string"
+      "description": "Request path. Query parameters stay in query. Use object form with raw=true when the path bytes must be preserved on the wire.",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "description": "Request path value",
+              "type": "string"
+            },
+            "raw": {
+              "default": false,
+              "description": "Preserve the path value as the HTTP request-target path without URL normalization",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "value"
+          ],
+          "type": "object"
+        }
+      ]
     },
     "query": {
       "description": "Query parameters",
