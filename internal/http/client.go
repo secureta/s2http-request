@@ -254,7 +254,10 @@ func (c *Client) sendRawRequestTargetRequest(ctx context.Context, processedReque
 	dialer := &net.Dialer{Timeout: c.timeout}
 	var conn net.Conn
 	if scheme == "https" {
-		conn, err = tls.DialWithDialer(dialer, "tcp", dialHost, &tls.Config{ServerName: hostname})
+		conn, err = tls.DialWithDialer(dialer, "tcp", dialHost, &tls.Config{
+			ServerName: hostname,
+			MinVersion: tls.VersionTLS12,
+		})
 	} else {
 		conn, err = dialer.DialContext(ctx, "tcp", dialHost)
 	}
