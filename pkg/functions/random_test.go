@@ -60,9 +60,9 @@ func TestRandomFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fn := &RandomFunction{}
 			ctx := context.Background()
-			
+
 			result, err := fn.Execute(ctx, tt.args)
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
@@ -134,9 +134,9 @@ func TestRandomStringFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fn := &RandomStringFunction{}
 			ctx := context.Background()
-			
+
 			result, err := fn.Execute(ctx, tt.args)
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
@@ -172,9 +172,9 @@ func TestUUIDFunction(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fn := &UUIDFunction{}
 			ctx := context.Background()
-			
+
 			result, err := fn.Execute(ctx, tt.args)
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("Expected error but got none")
 			}
@@ -202,7 +202,7 @@ func TestUUIDFunction(t *testing.T) {
 func TestUUIDFunctionUniqueness(t *testing.T) {
 	fn := &UUIDFunction{}
 	ctx := context.Background()
-	
+
 	// Generate multiple UUIDs and check they're unique
 	uuids := make(map[string]bool)
 	for i := 0; i < 100; i++ {
@@ -210,7 +210,7 @@ func TestUUIDFunctionUniqueness(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
-		
+
 		uuid := result.(string)
 		if uuids[uuid] {
 			t.Errorf("Duplicate UUID generated: %s", uuid)

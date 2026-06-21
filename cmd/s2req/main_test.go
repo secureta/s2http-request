@@ -126,36 +126,36 @@ func TestVarFlags_Set(t *testing.T) {
 
 func TestVarFlags_MultipleSet(t *testing.T) {
 	flags := make(varFlags)
-	
+
 	err := flags.Set("name=test")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	
+
 	err = flags.Set("id=123")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	
+
 	err = flags.Set("items=[1,2,3]")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	
+
 	// Check all values are present
 	if flags["name"] != "test" {
 		t.Errorf("Expected name=test, got %v", flags["name"])
 	}
-	
+
 	if !compareValues(123, flags["id"]) {
 		t.Errorf("Expected id=123, got %v", flags["id"])
 	}
-	
+
 	expectedItems := []interface{}{float64(1), float64(2), float64(3)}
 	if !compareValues(flags["items"], expectedItems) {
 		t.Errorf("Expected items=%v, got %v", expectedItems, flags["items"])
 	}
-	
+
 	if len(flags) != 3 {
 		t.Errorf("Expected 3 flags, got %d", len(flags))
 	}
@@ -163,24 +163,24 @@ func TestVarFlags_MultipleSet(t *testing.T) {
 
 func TestVarFlags_Override(t *testing.T) {
 	flags := make(varFlags)
-	
+
 	// Set initial value
 	err := flags.Set("key=original")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	
+
 	// Override with new value
 	err = flags.Set("key=overridden")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	
+
 	// Check that the value was overridden
 	if flags["key"] != "overridden" {
 		t.Errorf("Expected key=overridden, got %v", flags["key"])
 	}
-	
+
 	if len(flags) != 1 {
 		t.Errorf("Expected 1 flag, got %d", len(flags))
 	}
@@ -203,7 +203,7 @@ func compareValues(expected, actual interface{}) bool {
 		}
 		return false
 	}
-	
+
 	// Handle maps
 	if expectedMap, ok := expected.(map[string]interface{}); ok {
 		if actualMap, ok := actual.(map[string]interface{}); ok {
@@ -220,7 +220,7 @@ func compareValues(expected, actual interface{}) bool {
 		}
 		return false
 	}
-	
+
 	// Handle numeric type mismatches (int vs float64)
 	if expectedInt, ok := expected.(int); ok {
 		if actualFloat, ok := actual.(float64); ok {
@@ -238,7 +238,7 @@ func compareValues(expected, actual interface{}) bool {
 			return expectedFloat == actualFloat
 		}
 	}
-	
+
 	// Handle primitive types
 	return expected == actual
 }

@@ -52,8 +52,8 @@ func (t *fragmentTransport) sendRequestWithFragment(req *http.Request) (resp *ht
 		}
 	}
 
-	// TCP接続を確立
-	conn, err := net.DialTimeout("tcp", host, 30*time.Second)
+	// TCP接続を確立. The tool intentionally sends user-defined requests to user-specified hosts.
+	conn, err := net.DialTimeout("tcp", host, 30*time.Second) // #nosec G704
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial: %w", err)
 	}
@@ -254,7 +254,6 @@ func (c *Client) SendRequestWithRetry(ctx context.Context, processedRequest *con
 		} else {
 			return response, nil
 		}
-
 
 		// コンテキストがキャンセルされた場合はリトライしない
 		if ctx.Err() != nil {
