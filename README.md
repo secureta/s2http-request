@@ -380,6 +380,23 @@ s2http-request/
     └── functions/
 ```
 
+## Development
+
+Quality checks are shared between GitHub Actions and local git hooks via `scripts/quality.sh`.
+
+```bash
+# Run the same checks used by the pre-commit hook
+scripts/quality.sh pre-commit
+
+# Run CI-equivalent checks locally
+scripts/quality.sh ci
+
+# Install the repository pre-commit hook
+scripts/install-git-hooks.sh
+```
+
+The pre-commit hook runs fast checks: `gofmt`, `go vet`, baseline `golangci-lint`, and `go test ./...`. CI also runs race-enabled tests, gosec SAST, build checks, and CodeQL.
+
 ## License
 
 MIT License

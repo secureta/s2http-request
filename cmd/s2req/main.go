@@ -244,7 +244,10 @@ func handleValidateCommand() {
 	)
 
 	// Parse arguments starting from position 2 (after "validate")
-	validateCmd.Parse(os.Args[2:])
+	if err := validateCmd.Parse(os.Args[2:]); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to parse validate arguments: %v\n", err)
+		os.Exit(1)
+	}
 
 	if *showVersion {
 		fmt.Printf("s2req version %s\n", version)
@@ -319,8 +322,8 @@ func validateFile(p *parser.Parser, filePath string, verbose bool) error {
 		fmt.Printf("Validating %s...\n", filePath)
 	}
 
-	// Read the file
-	data, err := os.ReadFile(filePath)
+	// Read the file. The CLI intentionally accepts user-supplied request definition paths.
+	data, err := os.ReadFile(filePath) // #nosec G304
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
@@ -480,8 +483,8 @@ func main() {
 }
 
 func processFile(p *parser.Parser, client *http.Client, cliConfig *config.CLIConfig, filePath string, userAgent string, variables map[string]interface{}) ([]*config.Result, error) {
-	// ファイルの読み込み
-	data, err := os.ReadFile(filePath)
+	// ファイルの読み込み。The CLI intentionally accepts user-supplied request definition paths.
+	data, err := os.ReadFile(filePath) // #nosec G304
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -590,7 +593,7 @@ func outputResults(results []*config.Result, cliConfig *config.CLIConfig) error 
 	}
 
 	if cliConfig.Output != "" {
-		return os.WriteFile(cliConfig.Output, output, 0644)
+		return os.WriteFile(cliConfig.Output, output, 0600)
 	}
 
 	fmt.Print(string(output))

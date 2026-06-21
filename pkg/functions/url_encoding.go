@@ -72,8 +72,8 @@ func (f *CaseVariationFunction) Execute(_ context.Context, args []interface{}) (
 		return nil, fmt.Errorf("case_variation function expects string argument")
 	}
 
-	// シードを現在時刻で初期化
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	// シードを現在時刻で初期化。This function intentionally generates non-cryptographic case variation.
+	rng := rand.New(rand.NewSource(time.Now().UnixNano())) // #nosec G404
 
 	var result strings.Builder
 	for _, r := range input {

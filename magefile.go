@@ -1,3 +1,4 @@
+//go:build mage
 // +build mage
 
 package main
@@ -11,11 +12,11 @@ import (
 )
 
 var (
-	binaryDir       = "bin"
+	binaryDir        = "bin"
 	dispatcherBinary = filepath.Join(binaryDir, "s2req")
-	schemaBinary    = filepath.Join(binaryDir, "s2req-schema")
-	version         = getVersion()
-	ldflags         = "-ldflags=-X main.version=" + version
+	schemaBinary     = filepath.Join(binaryDir, "s2req-schema")
+	version          = getVersion()
+	ldflags          = "-ldflags=-X main.version=" + version
 )
 
 func getVersion() string {

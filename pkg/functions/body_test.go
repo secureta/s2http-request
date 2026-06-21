@@ -72,4 +72,3 @@ func TestJSONFunction(t *testing.T) {
 		t.Error("Expected error for non-map argument")
 	}
 }
-
